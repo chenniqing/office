@@ -16,7 +16,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-import cn.javaex.office.annotation.ExcelSheet;
+import cn.javaex.office.excel.annotation.ExcelSheet;
 import cn.javaex.office.excel.entity.ExcelSetting;
 import cn.javaex.office.excel.help.SheetHelper;
 import cn.javaex.office.excel.help.WorkbookHelpler;
@@ -91,7 +91,7 @@ public class ExcelUtils {
 		String sheetName = SheetHelper.SHEET_NAME;
 		ExcelSheet excelSheet = clazz.getAnnotation(ExcelSheet.class);
 		if (excelSheet!=null) {
-			sheetName = excelSheet.value();
+			sheetName = excelSheet.name();
 		}
 		
 		// 得到Workbook对象

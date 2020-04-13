@@ -1,4 +1,4 @@
-package cn.javaex.office.annotation;
+package cn.javaex.office.excel.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -52,9 +52,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STJc.Enum;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 import org.w3c.dom.Document;
 
-import cn.javaex.office.common.Font;
-import cn.javaex.office.common.Picture;
-import cn.javaex.office.common.Table;
+import cn.javaex.office.common.entity.Font;
+import cn.javaex.office.common.entity.Picture;
+import cn.javaex.office.common.entity.Table;
 import fr.opensagres.poi.xwpf.converter.core.ImageManager;
 import fr.opensagres.poi.xwpf.converter.xhtml.XHTMLConverter;
 import fr.opensagres.poi.xwpf.converter.xhtml.XHTMLOptions;

@@ -13,9 +13,11 @@ import cn.javaex.office.excel.style.ICellStyle;
  * @author 陈霓清
  */
 public class ExcelSetting {
-	private String sheetName;                      // sheet名称
+	private String sheetName;                      // sheet页名称
+	private String title;                          // 顶部标题/说明
 	private List<String[]> headerList;             // 表头
 	private List<String[]> dataList;               // 数据
+	private String selectSheetName = "下拉数据";     // 下拉数据的sheet页名称
 	private List<String[]> selectDataList;         // 下拉数据
 	private String[] selectColArr;                 // 指定sheet1中需要下拉的列
 	private Integer columnWidth = 10;              // 列宽
@@ -26,13 +28,12 @@ public class ExcelSetting {
 	public ICellStyle getCellStyle() {
 		return cellStyle;
 	}
-
 	public void setCellStyle(ICellStyle cellStyle) {
 		this.cellStyle = cellStyle;
 	}
 
 	/**
-	 * 得到sheet名称
+	 * 得到sheet页名称
 	 * @return
 	 */
 	public String getSheetName() {
@@ -40,13 +41,27 @@ public class ExcelSetting {
 	}
 	
 	/**
-	 * 设置sheet名称
+	 * 设置sheet页名称
 	 * @param sheet1Name
 	 */
 	public void setSheetName(String sheetName) {
 		this.sheetName = sheetName;
 	}
 	
+	/**
+	 * 得到顶部标题/说明
+	 * @return
+	 */
+	public String getTitle() {
+		return title;
+	}
+	/**
+	 * 设置顶部标题/说明
+	 * @param title
+	 */
+	public void setTitle(String title) {
+		this.title = title;
+	}
 	/**
 	 * 得到表头
 	 * @return
@@ -77,6 +92,21 @@ public class ExcelSetting {
 		this.dataList = dataList;
 	}
 
+	/**
+	 * 得到下拉数据的sheet页名称
+	 * @return
+	 */
+	public String getSelectSheetName() {
+		return selectSheetName;
+	}
+	/**
+	 * 设置下拉数据的sheet页名称
+	 * @param selectSheetName
+	 */
+	public void setSelectSheetName(String selectSheetName) {
+		this.selectSheetName = selectSheetName;
+	}
+	
 	/**
 	 * 得到下拉数据
 	 * @return

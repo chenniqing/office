@@ -1,4 +1,4 @@
-package cn.javaex.office.common;
+package cn.javaex.office.common.entity;
 
 /**
  * 图片属性

@@ -1,4 +1,4 @@
-package cn.javaex.office.util;
+package cn.javaex.office.common.util;
 
 import java.io.File;
 

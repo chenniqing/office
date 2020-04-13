@@ -1,4 +1,4 @@
-package cn.javaex.office.annotation;
+package cn.javaex.office.excel.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -13,6 +13,12 @@ public @interface ExcelSheet {
 	 * sheet名称
 	 * @return
 	 */
-	public String value() default "Sheet1";
+	public String name() default "Sheet1";
 
+	/**
+	 * 顶部标题/说明
+	 * @return
+	 */
+	public String title() default "";
+	
 }

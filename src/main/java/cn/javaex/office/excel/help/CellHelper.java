@@ -13,7 +13,7 @@ import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 
-import cn.javaex.office.util.PathUtils;
+import cn.javaex.office.common.util.PathUtils;
 
 /**
  * Cell

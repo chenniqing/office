@@ -24,7 +24,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import cn.javaex.office.util.PathUtils;
+import cn.javaex.office.common.util.PathUtils;
 
 /**
  * 文件工具类

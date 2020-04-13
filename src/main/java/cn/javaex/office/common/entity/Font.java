@@ -1,4 +1,4 @@
-package cn.javaex.office.common;
+package cn.javaex.office.common.entity;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -10,9 +10,7 @@ import java.io.Serializable;
  * @author 陈霓清
  */
 public class Font implements Serializable {
-	/**
-	 * 
-	 */
+	
 	private static final long serialVersionUID = 1L;
 	
 	private String text;             // 文本内容

@@ -24,7 +24,7 @@ import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 
-import cn.javaex.office.annotation.ExcelCell;
+import cn.javaex.office.excel.annotation.ExcelCell;
 import cn.javaex.office.excel.entity.ExcelSetting;
 import cn.javaex.office.excel.style.DefaultCellStyle;
 
@@ -38,8 +38,6 @@ public class SheetHelper {
 	
 	/** 默认sheet页名称 */
 	public static final String SHEET_NAME = "Sheet1";
-	/** 下拉选中sheet页名称 */
-	public static final String SELECT_SHEET_NAME = "下拉数据";
 	/** 列宽基数 */
 	public static final int BASE_COLUMN_WIDTH = 256;
 	/** 下拉数据来源作用于sheet的最大行 */
@@ -338,7 +336,7 @@ public class SheetHelper {
 		
 		// 设置下拉框数据
 		if (selectColArr!=null && selectColArr.length>0) {
-			String selectSheetName = SELECT_SHEET_NAME;
+			String selectSheetName = excelSetting.getSelectSheetName();
 			Sheet selectSheet = wb.createSheet(selectSheetName);
 			
 			String[] arr = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
