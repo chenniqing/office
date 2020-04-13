@@ -1,9 +1,11 @@
 package cn.javaex.office.excel.entity;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.poi.ss.util.CellRangeAddress;
+
+import cn.javaex.office.excel.style.DefaultCellStyle;
+import cn.javaex.office.excel.style.ICellStyle;
 
 /**
  * Excel模板配置类
@@ -11,89 +13,82 @@ import org.apache.poi.ss.util.CellRangeAddress;
  * @author 陈霓清
  */
 public class ExcelSetting {
-	private String sheet1Name;                      // sheet1名称
-	private String sheet2Name;                      // sheet2名称
-	private String[] headerArr;                     // 表头
-	private ArrayList<String[]> demoList = new ArrayList<String[]>();        // 样例数据
-	private ArrayList<String[]> selectDataList = new ArrayList<String[]>();  // 下拉数据
-	private String[] selectColArr;                  // 指定sheet1中需要下拉的列
-	private Integer columnWidth;                    // 列宽
-	private Integer maxRow;                         // 下拉数据来源作用于sheet1的最大行
-	private List<CellRangeAddress> rangeList;       // 合并单元格
+	private String sheetName;                      // sheet名称
+	private List<String[]> headerList;             // 表头
+	private List<String[]> dataList;               // 数据
+	private List<String[]> selectDataList;         // 下拉数据
+	private String[] selectColArr;                 // 指定sheet1中需要下拉的列
+	private Integer columnWidth = 10;              // 列宽
+	private Integer maxRow;                        // 下拉数据来源作用于sheet1的最大行
+	private List<CellRangeAddress> rangeList;      // 合并单元格
+	private ICellStyle cellStyle = new DefaultCellStyle();    // 单元格样式
 	
+	public ICellStyle getCellStyle() {
+		return cellStyle;
+	}
+
+	public void setCellStyle(ICellStyle cellStyle) {
+		this.cellStyle = cellStyle;
+	}
+
 	/**
-	 * 得到sheet1名称
+	 * 得到sheet名称
 	 * @return
 	 */
-	public String getSheet1Name() {
-		return sheet1Name;
+	public String getSheetName() {
+		return sheetName;
 	}
 	
 	/**
-	 * 设置sheet1名称
+	 * 设置sheet名称
 	 * @param sheet1Name
 	 */
-	public void setSheet1Name(String sheet1Name) {
-		this.sheet1Name = sheet1Name;
-	}
-	
-	/**
-	 * 得到sheet2名称
-	 * @return
-	 */
-	public String getSheet2Name() {
-		return sheet2Name;
-	}
-	/**
-	 * 设置sheet2名称
-	 * @param sheet2Name
-	 */
-	public void setSheet2Name(String sheet2Name) {
-		this.sheet2Name = sheet2Name;
+	public void setSheetName(String sheetName) {
+		this.sheetName = sheetName;
 	}
 	
 	/**
 	 * 得到表头
 	 * @return
 	 */
-	public String[] getHeaderArr() {
-		return headerArr;
+	public List<String[]> getHeaderList() {
+		return headerList;
 	}
 	/**
 	 * 设置表头
-	 * @param headerArr
+	 * @param headerList
 	 */
-	public void setHeaderArr(String[] headerArr) {
-		this.headerArr = headerArr;
+	public void setHeaderList(List<String[]> headerList) {
+		this.headerList = headerList;
 	}
-	
+
 	/**
-	 * 得到样例数据
+	 * 得到数据
 	 * @return
 	 */
-	public ArrayList<String[]> getDemoList() {
-		return demoList;
+	public List<String[]> getDataList() {
+		return dataList;
 	}
 	/**
-	 * 设置样例数据
+	 * 设置数据
 	 * @param demoList
 	 */
-	public void setDemoList(ArrayList<String[]> demoList) {
-		this.demoList = demoList;
+	public void setDataList(List<String[]> dataList) {
+		this.dataList = dataList;
 	}
-	
+
 	/**
 	 * 得到下拉数据
 	 * @return
 	 */
-	public ArrayList<String[]> getSelectDataList() {
+	public List<String[]> getSelectDataList() {
 		return selectDataList;
 	}
 	/**
 	 * 设置下拉数据
 	 * @param selectDataList
 	 */
-	public void setSelectDataList(ArrayList<String[]> selectDataList) {
+	public void setSelectDataList(List<String[]> selectDataList) {
 		this.selectDataList = selectDataList;
 	}
 	

@@ -131,6 +131,7 @@ public class Font implements Serializable {
 	/**
 	 * 对象序列化
 	 */
+	@Override
 	public String toString() {
 		String objStr = "";
 		

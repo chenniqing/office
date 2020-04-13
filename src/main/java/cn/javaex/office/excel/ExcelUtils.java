@@ -10,28 +10,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.CellRangeAddressList;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFDataFormat;
-import org.apache.poi.xssf.usermodel.XSSFDataValidation;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationConstraint;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import cn.javaex.office.annotation.ExcelSheet;
 import cn.javaex.office.excel.entity.ExcelSetting;
+import cn.javaex.office.excel.help.SheetHelper;
+import cn.javaex.office.excel.help.WorkbookHelpler;
 
 /**
  * Excel工具类
@@ -39,29 +27,6 @@ import cn.javaex.office.excel.entity.ExcelSetting;
  * @author 陈霓清
  */
 public class ExcelUtils {
-	
-	/**
-	 * 设置数据有效性
-	 * @param sheet
-	 * @param formula
-	 * @param startRow 起始行
-	 * @param endRow 终止行
-	 * @param startCol 起始列
-	 * @param endCol 终止列
-	 * @return
-	 */
-	private static DataValidation setDataValidation(XSSFSheet sheet, String formula,
-			int startRow, int endRow, int startCol, int endCol) {
-		
-		// 设置数据有效性加载在哪个单元格上。四个参数分别是：起始行、终止行、起始列、终止列
-		CellRangeAddressList addressList = new CellRangeAddressList(startRow, endRow, startCol, endCol);
-		
-		XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(sheet);
-		XSSFDataValidationConstraint constraint = (XSSFDataValidationConstraint)dvHelper.createFormulaListConstraint(formula);
-		XSSFDataValidation dataValidation = (XSSFDataValidation)dvHelper.createValidation(constraint, addressList);
-		
-		return dataValidation;
-	}
 	
 	/**
 	 * 获取单元格内容
@@ -115,154 +80,87 @@ public class ExcelUtils {
 	}
 	
 	/**
-	 * 得到Excel对象
+	 * 根据注解方式得到Workbook对象
+	 * @param clazz
+	 * @param list
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook getExcel(Class<?> clazz, List<?> list) throws Exception {
+		// 设置sheet名称
+		String sheetName = SheetHelper.SHEET_NAME;
+		ExcelSheet excelSheet = clazz.getAnnotation(ExcelSheet.class);
+		if (excelSheet!=null) {
+			sheetName = excelSheet.value();
+		}
+		
+		// 得到Workbook对象
+		return getExcel(null, clazz, list, sheetName);
+	}
+	
+	/**
+	 * 根据注解方式得到Workbook对象（手动指定sheet名称）
+	 * @param wb
+	 * @param clazz
+	 * @param list
+	 * @param sheetName
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook getExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		// 1.0 创建 Excel
+		if (wb==null) {
+			int size = list==null ? 0 : list.size();
+			wb = new WorkbookHelpler().createWorkbook(size);
+		}
+		
+		// 2.0 创建sheet
+		Sheet sheet = wb.createSheet(sheetName);
+		
+		// 3.0 设置表头
+		sheetHelper.createHeader(sheet, clazz);
+		
+		// 4.0 设置数据体
+		sheetHelper.createData(sheet, clazz, list);
+		
+		return wb;
+	}
+	
+	/**
+	 * 得到Workbook对象
 	 * @param excelSetting
 	 * @throws Exception
 	 */
-	public static XSSFWorkbook getXlsx(ExcelSetting excelSetting) throws Exception {
-		// sheet1名称
-		String sheet1Name = excelSetting.getSheet1Name();
-		if (sheet1Name==null || sheet1Name.length()==0) {
-			sheet1Name = "Sheet1";
-		}
-		// sheet2名称
-		String sheet2Name = excelSetting.getSheet2Name();
-		if (sheet2Name==null || sheet2Name.length()==0) {
-			sheet2Name = "Sheet2";
-		}
-		// 表头
-		String[] headerArr = excelSetting.getHeaderArr();
-		// 样例数据
-		ArrayList<String[]> demoList = excelSetting.getDemoList();
-		// 下拉数据
-		ArrayList<String[]> selectDataList = excelSetting.getSelectDataList();
-		// 指定sheet1中需要下拉的列
-		String[] selectColArr = excelSetting.getSelectColArr();
-		// 列宽
-		Integer columnWidth = excelSetting.getColumnWidth();
-		// 下拉数据来源作用于sheet1的最大行
-		Integer maxRow = excelSetting.getMaxRow();
-		if (maxRow==null || maxRow==0) {
-			maxRow = 5000;
-		}
+	public static Workbook getExcel(ExcelSetting excelSetting) throws Exception {
+		SheetHelper sheetHelper = new SheetHelper();
 		
-		// 创建工作薄
-		XSSFWorkbook xwb = new XSSFWorkbook();
+		// 1.0 创建 Excel
+		List<String[]> dataList = excelSetting.getDataList();
+		int size = dataList==null ? 0 : dataList.size();
+		Workbook wb = new WorkbookHelpler().createWorkbook(size);
 		
-		// 设置字体样式
-		XSSFCellStyle cellStyle = xwb.createCellStyle();
-		// 水平对齐方式（居中）
-		cellStyle.setAlignment(HorizontalAlignment.CENTER);
-		// 垂直对齐方式（居中）
-		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-		// 设置单元格为文本格式
-		XSSFDataFormat format = xwb.createDataFormat();
-		cellStyle.setDataFormat(format.getFormat("@"));
-		
-		// 新建sheet及名称
-		XSSFSheet sheet1 = xwb.createSheet(sheet1Name);
-		// 设置单元格属性
-		for (int i=0; i<26; i++) {
-			sheet1.setDefaultColumnStyle(i, cellStyle);
+		// 2.0 创建sheet
+		String sheetName = excelSetting.getSheetName();
+		if (sheetName==null || sheetName.length()==0) {
+			sheetName = SheetHelper.SHEET_NAME;
 		}
+		Sheet sheet = wb.createSheet(sheetName);
 		
-		// sheet的第一行为标题
-		XSSFRow firstRow = sheet1.createRow(0);
-		if (headerArr!=null && headerArr.length>0) {
-			for (int i=0; i<headerArr.length; i++) {
-				// 获取第一行的每个单元格
-				XSSFCell cell = firstRow.createCell(i);
-				// 设置列宽
-				if (columnWidth!=null && columnWidth>0) {
-					sheet1.setColumnWidth(i, columnWidth);
-				}
-				// 往单元格里写数据
-				cell.setCellValue(headerArr[i]);
-				
-				// 设置字体样式
-				XSSFCellStyle cellStyleHeader = xwb.createCellStyle();
-				// 水平对齐方式（居中）
-				cellStyleHeader.setAlignment(HorizontalAlignment.CENTER);
-				// 垂直对齐方式（居中）
-				cellStyleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
-				// 字体
-				XSSFFont fontHeader = xwb.createFont();
-				fontHeader.setFontName("等线");
-				fontHeader.setFontHeightInPoints((short) 14);
-				cellStyleHeader.setFont(fontHeader);
-				
-				// 将样式设置应用具体单元格
-				cell.setCellStyle(cellStyleHeader);
-			}
-		}
+		// 3.0 设置表头
+		sheetHelper.createHeader(sheet, excelSetting);
 		
-		// 写数据
-		if (demoList!=null && demoList.isEmpty()==false) {
-			int len = demoList.size();
-			for (int i=0; i<len; i++) {
-				String[] data = demoList.get(i);
-				if (data!=null && data.length>0) {
-					XSSFRow row = sheet1.createRow(i+1);
-					
-					for (int j=0; j<data.length; j++) {
-						// 获取行的每个单元格
-						XSSFCell cell = row.createCell(j);
-						// 往单元格里写数据
-						cell.setCellValue(data[j]);
-						// 将样式设置应用具体单元格
-						cell.setCellStyle(cellStyle);
-					}
-				}
-			}
-		}
+		// 4.0 设置数据体
+		sheetHelper.createData(sheet, excelSetting);
 		
-		// 设置合并单元格
-		List<CellRangeAddress> rangeList = excelSetting.getRangeList();
-		if (rangeList!=null && rangeList.isEmpty()==false) {
-			for (CellRangeAddress cellRangeAddress : rangeList) {
-				sheet1.addMergedRegion(cellRangeAddress);
-			}
-		}
+		// 5.0 设置合并单元格
+		sheetHelper.mergeCell(sheet, excelSetting);
 		
-		// 设置下拉框数据
-		if (selectColArr!=null && selectColArr.length>0) {
-			XSSFSheet sheet2 = xwb.createSheet(sheet2Name);
-			
-			String[] arr = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-			int index = 0;
-			for (int i=0; i<selectColArr.length; i++) {
-				// 获取下拉对象
-				String[] dlData = selectDataList.get(i);
-				int colNum = Integer.parseInt(selectColArr[i]);
-				
-				// 设置有效性
-				String formula = "Sheet2!$"+arr[index]+"$1:$"+arr[index]+"$"+dlData.length; //Sheet2第A1到A500作为下拉列表来源数据
-				// 设置数据有效性加载在哪个单元格上,参数分别是：从sheet2获取A1到AmaxRow作为一个下拉的数据、起始行、终止行、起始列、终止列
-				sheet1.addValidationData(setDataValidation(sheet2, formula, 1, maxRow, colNum, colNum));
-				
-				// 生成sheet2内容
-				for (int j=0; j<dlData.length; j++) {
-					if (index==0) {
-						// 第1个下拉选项，直接创建行、列，设置对应单元格的值
-						sheet2.createRow(j).createCell(0).setCellValue(dlData[j]);
-					} else {
-						// 非第1个下拉选项
-						int colCount = sheet2.getLastRowNum();
-						if (j<=colCount) {
-							// 前面创建过的行，直接获取行，创建列，设置对应单元格的值
-							sheet2.getRow(j).createCell(index).setCellValue(dlData[j]);
-						} else {
-							// 未创建过的行，直接创建行、创建列，设置对应单元格的值
-							sheet2.createRow(j).createCell(index).setCellValue(dlData[j]);
-						}
-					}
-				}
-				
-				index++;
-			}
-		}
+		// 6.0 设置下拉数据
+		sheetHelper.createSelectSheet(sheet, excelSetting);
 		
-		return xwb;
+		return wb;
 	}
 
 	/**
@@ -273,7 +171,7 @@ public class ExcelUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readXlsx(InputStream inputStream, Class<T> clazz, int num) throws Exception {
+	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int num) throws Exception {
 		List<T> list = new ArrayList<T>();
 		
 		Workbook wb = WorkbookFactory.create(inputStream);
@@ -298,7 +196,7 @@ public class ExcelUtils {
 				
 				// 获取该列的值
 				String cellValue = getCellValue(cell);
-				if ("".equals(cellValue)) {
+				if (cellValue.length()==0) {
 					continue;
 				}
 				// 如果实例不存在则新建
@@ -345,14 +243,14 @@ public class ExcelUtils {
 	}
 	
 	/**
-	 * 读取将Excel，并将每一行转为自定义实体对象
+	 * 读取Excel，并将每一行转为自定义实体对象
 	 * @param inputStream
 	 * @param clazz 自定义实体类
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readXlsx(InputStream inputStream, Class<T> clazz) throws Exception {
-		return readXlsx(inputStream, clazz, 1);
+	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz) throws Exception {
+		return readExcel(inputStream, clazz, 1);
 	}
-
+	
 }

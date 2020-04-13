@@ -16,14 +16,15 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.util.IOUtils;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import cn.javaex.office.util.PathUtils;
 
 /**
  * 文件工具类
@@ -37,14 +38,7 @@ public class FileUtils {
 	 * @return
 	 */
 	private static String getFolderPath() {
-		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		// 获取地址内容，原路径（项目名）
-		String realPath = request.getSession().getServletContext().getRealPath("/");
-		// 项目名
-		String path = request.getContextPath();
-		path = path.replace("/", "") + File.separator;
-		String projectPath = realPath.replace(path, "");
-		
+		String projectPath = PathUtils.getProjectPath();
 		String folderPath = projectPath + File.separator + "temp_download";
 		File file = new File(folderPath);
 		file.mkdirs();
@@ -61,7 +55,7 @@ public class FileUtils {
 	public static void writeDocx(XWPFDocument docx, String filePath) throws IOException {
 		// 保证这个文件的父文件夹必须要存在
 		File targetFile = new File(filePath);
-		if(!targetFile.getParentFile().exists()){
+		if (!targetFile.getParentFile().exists()) {
 			targetFile.getParentFile().mkdirs();
 		}
 		
@@ -90,34 +84,34 @@ public class FileUtils {
 	
 	/**
 	 * 写Excel
-	 * @param xlsx
+	 * @param wb
 	 * @param filePath 文件写到哪里的全路径
 	 * @throws IOException
 	 */
-	public static void writeXlsx(XSSFWorkbook xlsx, String filePath) throws IOException {
+	public static void writeExcel(Workbook wb, String filePath) throws IOException {
 		// 保证这个文件的父文件夹必须要存在
 		File targetFile = new File(filePath);
-		if(!targetFile.getParentFile().exists()){
+		if (!targetFile.getParentFile().exists()) {
 			targetFile.getParentFile().mkdirs();
 		}
 		
 		FileOutputStream out = new FileOutputStream(targetFile);
-		xlsx.write(out);
+		wb.write(out);
 		out.flush();
 		IOUtils.closeQuietly(out);
 	}
 	
 	/**
 	 * 下载Excel
-	 * @param xlsx
+	 * @param wb
 	 * @param fileName 文件名，例如：1.xlsx
 	 * @throws IOException
 	 */
-	public static void downloadXlsx(XSSFWorkbook xlsx, String fileName) throws IOException {
+	public static void downloadExcel(Workbook wb, String fileName) throws IOException {
 		String folderPath = getFolderPath();
 		
 		FileOutputStream out = new FileOutputStream(folderPath + File.separator + fileName);
-		xlsx.write(out);
+		wb.write(out);
 		out.flush();
 		IOUtils.closeQuietly(out);
 		
@@ -407,7 +401,7 @@ public class FileUtils {
 					// 如果是文件，就先创建一个文件，然后用io流把内容copy过去
 					File targetFile = new File(destDirPath + File.separator + entry.getName());
 					// 保证这个文件的父文件夹必须要存在
-					if(!targetFile.getParentFile().exists()){
+					if (!targetFile.getParentFile().exists()) {
 						targetFile.getParentFile().mkdirs();
 					}
 					targetFile.createNewFile();
