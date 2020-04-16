@@ -699,4 +699,43 @@ public class SheetHelper {
 		}
 	}
 
+	/**
+	 * 设置下拉选项
+	 * @param sheet
+	 * @param colNum          第几个列（从1开始计算）
+	 * @param startRow        第几个行设置开始（从1开始计算）
+	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
+	 */
+	public void setSelect(Sheet sheet, int colNum, int startRow, int endRow, String[] selectDataList) {
+		int colIndex = colNum - 1;
+		int startRowIndex = startRow - 1;
+		int endRowIndex = endRow - 1;
+		
+		CellStyle cellStyle = sheet.getRow(startRowIndex).getCell(colIndex).getCellStyle();
+		Cell cell = null;
+		
+		for (int i=startRowIndex; i<endRow; i++) {
+			Row row = sheet.getRow(i);
+			if (row==null) {
+				cell = sheet.createRow(i).createCell(colIndex);
+			} else {
+				cell = row.getCell(colIndex);
+			}
+			
+			cell.setCellStyle(cellStyle);
+		}
+		
+		// 下拉的数据、起始行、终止行、起始列、终止列
+		CellRangeAddressList addressList = new CellRangeAddressList(startRowIndex, endRowIndex, colIndex, colIndex);
+		
+		// 生成下拉框内容
+		DataValidationHelper helper = sheet.getDataValidationHelper();
+		DataValidationConstraint constraint = helper.createExplicitListConstraint(selectDataList); 
+		DataValidation dataValidation = helper.createValidation(constraint, addressList);
+		
+		// 设置数据有效性
+		sheet.addValidationData(dataValidation);
+	}
+
 }

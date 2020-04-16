@@ -250,4 +250,38 @@ public class ExcelUtils {
 		
 		return sheetHelper.readSheet(sheet, clazz, rowNum-1);
 	}
+
+	/**
+	 * 设置下拉选项
+	 * @param wb
+	 * @param sheetNum        第几个Sheet页（从1开始计算）
+	 * @param colNum          第几个列（从1开始计算）
+	 * @param startRow        第几个行设置开始（从1开始计算）
+	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
+	 */
+	public static void setSelect(Workbook wb, int sheetNum, int colNum, int startRow, int endRow, String[] selectDataList) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		
+		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+	}
+	
+	/**
+	 * 设置下拉选项
+	 * @param wb
+	 * @param sheetName       Sheet页名称
+	 * @param colNum          第几个列（从1开始计算）
+	 * @param startRow        第几个行设置开始（从1开始计算）
+	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
+	 */
+	public static void setSelect(Workbook wb, String sheetName, int colNum, int startRow, int endRow, String[] selectDataList) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Sheet sheet = wb.getSheet(sheetName);
+		
+		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+	}
 }
