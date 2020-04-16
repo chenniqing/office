@@ -10,21 +10,21 @@ import java.lang.annotation.Target;
 public @interface ExcelCell {
 	
 	/**
-	 * 对应数据库字段的描述
+	 * 对应数据库字段的描述（即该列的名称）
 	 * @return
 	 */
-	public String name();
+	public String name() default "";
 	
 	/**
 	 * 值替换
-	 *     {"1_男", "0_女"}：表示数据库值为“1”时，替换为“男”，值为“0”时，替换为“女”
+	 *     replace={"1_男", "0_女"}：表示数据库值为“1”时，替换为“男”，值为“0”时，替换为“女”
 	 * @return
 	 */
 	public String[] replace() default {};
 	
 	/**
 	 * 排序，从 0 开始计算
-	 *     如果都缺省的话，则按照成员变量的顺序自动排序
+	 *     如果都缺省的话（即默认值-1），则按照成员变量的顺序自动排序
 	 * @return
 	 */
 	public int sort() default -1;

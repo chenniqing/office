@@ -32,6 +32,19 @@ public class PathUtils {
 	}
 	
 	/**
+	 * 获取项目所在磁盘的文件夹路径，并设置临时目录
+	 * @return
+	 */
+	public static String getFolderPath() {
+		String projectPath = getProjectPath();
+		String folderPath = projectPath + File.separator + "temp_download";
+		File file = new File(folderPath);
+		file.mkdirs();
+		
+		return folderPath;
+	}
+	
+	/**
 	 * 获取项目所在磁盘的文件夹路径
 	 * @return
 	 */

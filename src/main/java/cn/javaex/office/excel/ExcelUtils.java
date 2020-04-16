@@ -1,17 +1,14 @@
 package cn.javaex.office.excel;
 
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
@@ -64,8 +61,14 @@ public class ExcelUtils {
 			case BOOLEAN :
 				cellValue = String.valueOf(cell.getBooleanCellValue()).trim();
 				break;
-			case FORMULA :
-				cellValue = cell.getCellFormula();
+			case FORMULA :    // 公式
+				try {
+					cellValue = String.valueOf(cell.getNumericCellValue());
+				} catch (IllegalStateException e) {
+					cellValue = String.valueOf(cell.getRichStringCellValue());
+				} catch (Exception e) {
+					cellValue = cell.getCellFormula();
+				}
 				break;
 			case BLANK :
 				cellValue = "";
@@ -81,33 +84,48 @@ public class ExcelUtils {
 	
 	/**
 	 * 根据注解方式得到Workbook对象
-	 * @param clazz
-	 * @param list
+	 * @param clazz 数据库查询得到的vo实体对象
+	 * @param list  数据库查询得到的vo实体对象的数据集合
 	 * @return
 	 * @throws Exception
 	 */
 	public static Workbook getExcel(Class<?> clazz, List<?> list) throws Exception {
 		// 设置sheet名称
 		String sheetName = SheetHelper.SHEET_NAME;
+		String sheetTitle = null;
 		ExcelSheet excelSheet = clazz.getAnnotation(ExcelSheet.class);
 		if (excelSheet!=null) {
 			sheetName = excelSheet.name();
+			sheetTitle = excelSheet.title();
 		}
 		
-		// 得到Workbook对象
-		return getExcel(null, clazz, list, sheetName);
+		return getExcel(null, clazz, list, sheetName, sheetTitle);
 	}
 	
 	/**
-	 * 根据注解方式得到Workbook对象（手动指定sheet名称）
-	 * @param wb
-	 * @param clazz
-	 * @param list
-	 * @param sheetName
+	 * 根据注解方式得到Workbook对象（手动指定sheet页名称）
+	 * @param wb         Workbook对象
+	 * @param clazz      数据库查询得到的vo实体对象
+	 * @param list       数据库查询得到的vo实体对象的数据集合
+	 * @param sheetName  追加创建的sheet页名称
 	 * @return
 	 * @throws Exception
 	 */
 	public static Workbook getExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
+		return getExcel(null, clazz, list, sheetName, null);
+	}
+	
+	/**
+	 * 根据注解方式得到Workbook对象（手动指定sheet页名称）
+	 * @param wb          Workbook对象
+	 * @param clazz       数据库查询得到的vo实体对象
+	 * @param list        数据库查询得到的vo实体对象的数据集合
+	 * @param sheetName   追加创建的sheet页名称
+	 * @param sheetTitle  追加创建的sheet页顶部标题
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook getExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String sheetTitle) throws Exception {
 		SheetHelper sheetHelper = new SheetHelper();
 		
 		// 1.0 创建 Excel
@@ -119,15 +137,23 @@ public class ExcelUtils {
 		// 2.0 创建sheet
 		Sheet sheet = wb.createSheet(sheetName);
 		
+		// 当前写到了第几行（从1开始计算）
+		int rowNum = 0;
+		
+		// 3.0 设置标题
+		if (sheetTitle!=null && sheetTitle.length()>0) {
+			rowNum = sheetHelper.createTtile(sheet, clazz, sheetTitle);
+		}
+		
 		// 3.0 设置表头
-		sheetHelper.createHeader(sheet, clazz);
+		rowNum = sheetHelper.createHeader(sheet, clazz, rowNum);
 		
 		// 4.0 设置数据体
-		sheetHelper.createData(sheet, clazz, list);
+		sheetHelper.createData(sheet, clazz, list, rowNum);
 		
 		return wb;
 	}
-	
+
 	/**
 	 * 得到Workbook对象
 	 * @param excelSetting
@@ -164,85 +190,6 @@ public class ExcelUtils {
 	}
 
 	/**
-	 * 读取将Excel，并将每一行转为自定义实体对象
-	 * @param inputStream
-	 * @param clazz 自定义实体类
-	 * @param num   前几行跳过。从1开始计，0表示不跳过
-	 * @return
-	 * @throws Exception
-	 */
-	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int num) throws Exception {
-		List<T> list = new ArrayList<T>();
-		
-		Workbook wb = WorkbookFactory.create(inputStream);
-		Sheet sheet = wb.getSheetAt(0);
-		
-		Field[] fieldArr = clazz.getDeclaredFields();
-		
-		for (Row row : sheet) {
-			// 跳过第一行的表头
-			if (row.getRowNum()<num) {
-				continue;
-			}
-			
-			// 遍历每一列
-			T entity = null;
-			int len = fieldArr.length;
-			for (int i=0; i<len; i++) {
-				Cell cell = row.getCell(i);
-				if (cell==null) {
-					continue;
-				}
-				
-				// 获取该列的值
-				String cellValue = getCellValue(cell);
-				if (cellValue.length()==0) {
-					continue;
-				}
-				// 如果实例不存在则新建
-				if (entity==null) {
-					entity = clazz.newInstance();
-				}
-				
-				// 根据对象类型设置值
-				Field field = null;
-				try {
-					field = fieldArr[i];
-					field.setAccessible(true);    // 设置类的私有属性可访问
-				} catch (Exception e) {
-					throw new Exception("导入实体类成员变量的数量与Excel中的字段数量不匹配");
-				}
-				Class<?> fieldType = field.getType();
-				if (fieldType==String.class) {
-					field.set(entity, cellValue);
-				}
-				else if (fieldType==Integer.class || fieldType==Integer.TYPE) {
-					field.set(entity, Integer.parseInt(cellValue));
-				}
-				else if (fieldType==Long.class || fieldType==Long.TYPE) {
-					field.set(entity, Long.valueOf(cellValue));
-				}
-				else if (fieldType==Double.class || fieldType==Double.TYPE) {
-					field.set(entity, Double.valueOf(cellValue));
-				}
-				else if (fieldType==Float.class || fieldType==Float.TYPE) {
-					field.set(entity, Float.valueOf(cellValue));
-				}
-				else {
-					field.set(entity, null);
-				}
-			}
-			
-			// 把每一行的实体对象加入list
-			if (entity!=null) {
-				list.add(entity);
-			}
-		}
-		
-		return list;
-	}
-	
-	/**
 	 * 读取Excel，并将每一行转为自定义实体对象
 	 * @param inputStream
 	 * @param clazz 自定义实体类
@@ -250,7 +197,54 @@ public class ExcelUtils {
 	 * @throws Exception
 	 */
 	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz) throws Exception {
-		return readExcel(inputStream, clazz, 1);
+		return readExcel(inputStream, clazz, 1, 1);
 	}
 	
+	/**
+	 * 读取将Excel，并将每一行转为自定义实体对象
+	 * @param inputStream
+	 * @param clazz    自定义实体类
+	 * @param rowNum   从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int rowNum) throws Exception {
+		return readExcel(inputStream, clazz, 1, rowNum-1);
+	}
+	
+	/**
+	 * 读取Excel，并将每一行转为自定义实体对象
+	 * @param inputStream
+	 * @param clazz      自定义实体类
+	 * @param sheetNum   读取第几个sheet页（从1开始计算）
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int sheetNum, int rowNum) throws Exception {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Workbook wb = WorkbookFactory.create(inputStream);
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		
+		return sheetHelper.readSheet(sheet, clazz, rowNum-1);
+	}
+	
+	/**
+	 * 读取Excel，并将每一行转为自定义实体对象
+	 * @param inputStream
+	 * @param clazz      自定义实体类
+	 * @param sheetName  读取哪一个sheet页，填写sheet页名称
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, String sheetName, int rowNum) throws Exception {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Workbook wb = WorkbookFactory.create(inputStream);
+		Sheet sheet = wb.getSheet(sheetName);
+		
+		return sheetHelper.readSheet(sheet, clazz, rowNum-1);
+	}
 }

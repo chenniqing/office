@@ -10,13 +10,13 @@ import java.lang.annotation.Target;
 public @interface ExcelSheet {
 	
 	/**
-	 * sheet名称
+	 * Sheet页名称
 	 * @return
 	 */
 	public String name() default "Sheet1";
 
 	/**
-	 * 顶部标题/说明
+	 * 顶部标题
 	 * @return
 	 */
 	public String title() default "";

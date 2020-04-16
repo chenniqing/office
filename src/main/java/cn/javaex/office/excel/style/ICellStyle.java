@@ -14,6 +14,13 @@ public interface ICellStyle {
 	 * @param wk
 	 * @return 
 	 */
+	CellStyle createTitleStyle(Workbook wk);
+	
+	/**
+	 * 创建头部样式
+	 * @param wk
+	 * @return 
+	 */
 	CellStyle createHeaderStyle(Workbook wk);
 	
 	/**

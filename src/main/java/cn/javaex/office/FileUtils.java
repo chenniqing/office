@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -32,19 +33,8 @@ import cn.javaex.office.common.util.PathUtils;
  * @author 陈霓清
  */
 public class FileUtils {
-
-	/**
-	 * 获取项目所在磁盘的文件夹路径，并设置临时目录
-	 * @return
-	 */
-	private static String getFolderPath() {
-		String projectPath = PathUtils.getProjectPath();
-		String folderPath = projectPath + File.separator + "temp_download";
-		File file = new File(folderPath);
-		file.mkdirs();
-		
-		return folderPath;
-	}
+	// 默认缓冲区大小
+	private static final int BUFFER_SIZE = 2048;
 	
 	/**
 	 * 写Word
@@ -52,7 +42,7 @@ public class FileUtils {
 	 * @param filePath 文件写到哪里的全路径
 	 * @throws IOException
 	 */
-	public static void writeDocx(XWPFDocument docx, String filePath) throws IOException {
+	public static void writeWord(XWPFDocument docx, String filePath) throws IOException {
 		// 保证这个文件的父文件夹必须要存在
 		File targetFile = new File(filePath);
 		if (!targetFile.getParentFile().exists()) {
@@ -71,15 +61,17 @@ public class FileUtils {
 	 * @param fileName
 	 * @throws IOException
 	 */
-	public static void downloadDocx(XWPFDocument docx, String fileName) throws IOException {
-		String folderPath = getFolderPath();
+	public static void downloadWord(XWPFDocument docx, String fileName) throws IOException {
+		String folderPath = PathUtils.getFolderPath();
 		
-		FileOutputStream out = new FileOutputStream(folderPath + File.separator + fileName);
+		String fileUrl = folderPath + File.separator + fileName;
+		
+		FileOutputStream out = new FileOutputStream(fileUrl);
 		docx.write(out);
 		out.flush();
 		IOUtils.closeQuietly(out);
 		
-		downloadFile(folderPath, fileName);
+		downloadFile(fileUrl);
 	}
 	
 	/**
@@ -108,64 +100,148 @@ public class FileUtils {
 	 * @throws IOException
 	 */
 	public static void downloadExcel(Workbook wb, String fileName) throws IOException {
-		String folderPath = getFolderPath();
+		String folderPath = PathUtils.getFolderPath();
 		
-		FileOutputStream out = new FileOutputStream(folderPath + File.separator + fileName);
+		String fileUrl = folderPath + File.separator + fileName;
+		
+		FileOutputStream out = new FileOutputStream(fileUrl);
 		wb.write(out);
 		out.flush();
 		IOUtils.closeQuietly(out);
 		
-		downloadFile(folderPath, fileName);
+		downloadFile(fileUrl);
 	}
 	
 	/**
-	 * 文件下载
-	 * @param filePath 文件的绝对路径（带具体的文件名）
-	 * @throws IOException
+	 * 下载resources文件夹下的文件（不重命名）
+	 * @param <T>         直接写死 this
+	 * @param filePath    resources文件夹下的路径，例如：template/excel/模板.xlsx
 	 */
-	public static void downloadFile(String filePath) throws IOException {
+	public static <T> void downloadFileFromResource(T t, String filePath) {
+		downloadFileFromResource(t, filePath, null);
+	}
+	
+	/**
+	 * 下载resources文件夹下的文件
+	 * @param <T>           直接写死 this
+	 * @param filePath      resources文件夹下的路径，例如：template/excel/模板.xlsx
+	 * @param nameFileName  重命名文件名称（带后缀）
+	 */
+	public static <T> void downloadFileFromResource(T t, String filePath, String nameFileName) {
+		if (filePath.startsWith("/")) {
+			filePath = filePath.substring(1, filePath.length());
+		}
+		
+		try {
+			// SSM
+			String fileUrl = t.getClass().getResource(filePath).getPath();
+			downloadFile(fileUrl, null);
+		} catch (Exception e) {
+			// Springboot
+			if (nameFileName==null || nameFileName.length()==0) {
+				nameFileName = filePath.substring(filePath.lastIndexOf("/")+1, filePath.length());
+			}
+			
+			InputStream in = t.getClass().getClassLoader().getResourceAsStream(filePath);
+			downloadFile(in, nameFileName);
+		}
+	}
+	
+	/**
+	 * 下载文件
+	 * @param in              InputStream流
+	 * @param nameFileName    重命名文件名称（带后缀）
+	 */
+	public static void downloadFile(InputStream in, String nameFileName) {
+		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
+		
+		OutputStream out = null;
+		
+		try {
+			response.setContentType("application/octet-stream");
+			nameFileName = java.net.URLEncoder.encode(nameFileName, "UTF-8");
+			response.setHeader("Content-disposition", "attachment; filename=" + nameFileName);
+			out = response.getOutputStream();
+			
+			int b = 0;
+			byte[] buffer = new byte[BUFFER_SIZE];
+			while ((b = in.read(buffer)) != -1) {
+				out.write(buffer, 0, b);
+			}
+			
+			out.flush();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			IOUtils.closeQuietly(out);
+			IOUtils.closeQuietly(in);
+		}
+	}
+
+	/**
+	 * 文件下载（不重命名）
+	 * @param filePath  文件的路径（带具体的文件名）
+	 *                    如果是相对路径，则认为是项目的同级目录
+	 *                      如果是springboot源码运行，则认为相对路径是项目名文件夹下的路径
+	 */
+	public static void downloadFile(String filePath) {
 		downloadFile(filePath, null);
 	}
 	
 	/**
 	 * 文件下载
-	 * @param folderPath 文件所在文件夹路径
-	 * @param fileName 文件名称（带后缀）
-	 * @throws IOException
+	 * @param folderPath    文件的路径（带具体的文件名）
+	 *                        如果是相对路径，则认为是项目的同级目录
+	 *                          如果是springboot源码运行，则认为相对路径是项目名文件夹下的路径
+	 * @param nameFileName  重命名文件名称（带后缀）
 	 */
-	public static void downloadFile(String folderPath, String fileName) throws IOException {
+	public static void downloadFile(String folderPath, String nameFileName) {
 		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
 		
-		File file = null;
-		if (fileName==null || fileName.length()==0) {
-			file = new File(folderPath);
+		// 传入的路径是否是绝对路径
+		boolean isAbsolutePath = PathUtils.isAbsolutePath(folderPath);
+		// 存储文件的物理路径
+		String filePath = "";
+		if (isAbsolutePath) {
+			filePath = folderPath;
 		} else {
-			file = new File(folderPath, fileName);
+			String projectPath = PathUtils.getProjectPath();
+			filePath = projectPath + File.separator + folderPath;
+		}
+		
+		File file = new File(filePath);
+		if (nameFileName==null || nameFileName.length()==0) {
+			nameFileName = file.getName();
 		}
 		
 		BufferedInputStream bis = null;
 		BufferedOutputStream bos = null;
 		
-		response.setContentType("application/octet-stream");
-		response.setHeader("Content-disposition", "attachment; filename=" + URLEncoder.encode(file.getName(), "UTF-8"));
-		response.setHeader("Content-Length", String.valueOf(file.length()));
-		
-		bis = new BufferedInputStream(new FileInputStream(file));
-		bos = new BufferedOutputStream(response.getOutputStream());
-		byte[] buff = new byte[2048];
-		while (true) {
-			int bytesRead;
+		try {
+			response.setContentType("application/octet-stream");
+			response.setHeader("Content-disposition", "attachment; filename=" + URLEncoder.encode(nameFileName, "UTF-8"));
+			response.setHeader("Content-Length", String.valueOf(file.length()));
 			
-			if (-1 == (bytesRead=bis.read(buff, 0, buff.length))) {
-				break;
+			bis = new BufferedInputStream(new FileInputStream(file));
+			bos = new BufferedOutputStream(response.getOutputStream());
+			byte[] buff = new byte[BUFFER_SIZE];
+			while (true) {
+				int bytesRead;
+				
+				if (-1 == (bytesRead=bis.read(buff, 0, buff.length))) {
+					break;
+				}
+				
+				bos.write(buff, 0, bytesRead);
 			}
 			
-			bos.write(buff, 0, bytesRead);
+			bos.flush();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			IOUtils.closeQuietly(bos);
+			IOUtils.closeQuietly(bis);
 		}
-		
-		bos.flush();
-		IOUtils.closeQuietly(bis);
-		IOUtils.closeQuietly(bos);
 	}
 	
 	/**

@@ -14,6 +14,27 @@ import org.apache.poi.ss.usermodel.Workbook;
 public class DefaultCellStyle implements ICellStyle {
 
 	/**
+	 * 创建标题样式
+	 */
+	@Override
+	public CellStyle createTitleStyle(Workbook wb) {
+		// 设置字体样式
+		CellStyle cellStyle = wb.createCellStyle();
+		// 水平对齐方式（居中）
+		cellStyle.setAlignment(HorizontalAlignment.CENTER);
+		// 垂直对齐方式（居中）
+		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+		// 字体
+		Font font = wb.createFont();
+		font.setFontName("等线");
+		font.setBold(true);
+		font.setFontHeightInPoints((short) 16);
+		cellStyle.setFont(font);
+		
+		return cellStyle;
+	}
+	
+	/**
 	 * 创建头部样式
 	 */
 	@Override
@@ -25,9 +46,9 @@ public class DefaultCellStyle implements ICellStyle {
 		// 垂直对齐方式（居中）
 		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		// 字体
-		Font fontHeader = wb.createFont();
-		fontHeader.setFontName("等线");
-		cellStyle.setFont(fontHeader);
+		Font font = wb.createFont();
+		font.setFontName("等线");
+		cellStyle.setFont(font);
 		
 		return cellStyle;
 	}
@@ -44,9 +65,9 @@ public class DefaultCellStyle implements ICellStyle {
 		// 垂直对齐方式（居中）
 		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		// 字体
-		Font fontHeader = wb.createFont();
-		fontHeader.setFontName("等线");
-		cellStyle.setFont(fontHeader);
+		Font font = wb.createFont();
+		font.setFontName("等线");
+		cellStyle.setFont(font);
 		
 		return cellStyle;
 	}
