@@ -89,7 +89,7 @@ public class ExcelUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Workbook getExcel(Class<?> clazz, List<?> list) throws Exception {
+	public static Workbook exportExcel(Class<?> clazz, List<?> list) throws Exception {
 		// 设置sheet名称
 		String sheetName = SheetHelper.SHEET_NAME;
 		String sheetTitle = null;
@@ -99,7 +99,7 @@ public class ExcelUtils {
 			sheetTitle = excelSheet.title();
 		}
 		
-		return getExcel(null, clazz, list, sheetName, sheetTitle);
+		return exportExcel(null, clazz, list, sheetName, sheetTitle);
 	}
 	
 	/**
@@ -111,8 +111,8 @@ public class ExcelUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Workbook getExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
-		return getExcel(null, clazz, list, sheetName, null);
+	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
+		return exportExcel(null, clazz, list, sheetName, null);
 	}
 	
 	/**
@@ -125,7 +125,7 @@ public class ExcelUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Workbook getExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String sheetTitle) throws Exception {
+	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String sheetTitle) throws Exception {
 		SheetHelper sheetHelper = new SheetHelper();
 		
 		// 1.0 创建 Excel
@@ -145,10 +145,10 @@ public class ExcelUtils {
 			rowNum = sheetHelper.createTtile(sheet, clazz, sheetTitle);
 		}
 		
-		// 3.0 设置表头
+		// 4.0 设置表头
 		rowNum = sheetHelper.createHeader(sheet, clazz, rowNum);
 		
-		// 4.0 设置数据体
+		// 5.0 设置数据体
 		sheetHelper.createData(sheet, clazz, list, rowNum);
 		
 		return wb;
@@ -159,7 +159,7 @@ public class ExcelUtils {
 	 * @param excelSetting
 	 * @throws Exception
 	 */
-	public static Workbook getExcel(ExcelSetting excelSetting) throws Exception {
+	public static Workbook exportExcel(ExcelSetting excelSetting) throws Exception {
 		SheetHelper sheetHelper = new SheetHelper();
 		
 		// 1.0 创建 Excel
@@ -174,16 +174,19 @@ public class ExcelUtils {
 		}
 		Sheet sheet = wb.createSheet(sheetName);
 		
-		// 3.0 设置表头
+		// 3.0 设置标题
+		sheetHelper.createTtile(sheet, excelSetting);
+		
+		// 4.0 设置表头
 		sheetHelper.createHeader(sheet, excelSetting);
 		
-		// 4.0 设置数据体
+		// 5.0 设置数据体
 		sheetHelper.createData(sheet, excelSetting);
 		
-		// 5.0 设置合并单元格
+		// 6.0 设置合并单元格
 		sheetHelper.mergeCell(sheet, excelSetting);
 		
-		// 6.0 设置下拉数据
+		// 7.0 设置下拉数据
 		sheetHelper.createSelectSheet(sheet, excelSetting);
 		
 		return wb;

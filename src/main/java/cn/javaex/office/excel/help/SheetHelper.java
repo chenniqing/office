@@ -57,12 +57,12 @@ public class SheetHelper {
 	 * @param sheet
 	 * @param clazz
 	 * @param sheetTitle 
-	 * @return
+	 * @return        返回当前写到第几行
 	 */
 	public int createTtile(Sheet sheet, Class<?> clazz, String sheetTitle) {
 		Row row = sheet.createRow(0);
 		
-		// 得到标题样式
+		// 标题样式
 		CellStyle cellStyle = new DefaultCellStyle().createTitleStyle(sheet.getWorkbook());
 		
 		Cell cell = row.createCell(0);
@@ -96,6 +96,44 @@ public class SheetHelper {
 	}
 	
 	/**
+	 * 设置标题
+	 * @param sheet
+	 * @param excelSetting
+	 * @return
+	 */
+	public int createTtile(Sheet sheet, ExcelSetting excelSetting) {
+		String title = excelSetting.getTitle();
+		if (title==null || title.length()==0) {
+			return 0;
+		}
+		
+		Row row = sheet.createRow(0);
+		
+		// 标题样式
+		CellStyle cellStyle = excelSetting.getCellStyle().createTitleStyle(sheet.getWorkbook());
+		
+		Cell cell = row.createCell(0);
+		// 设置单元格内容
+		cell.setCellValue(title);
+		// 设置单元格样式
+		cell.setCellStyle(cellStyle);
+		
+		int length = 0;
+		// 头部数据
+		List<String[]> headerList = excelSetting.getHeaderList();
+		if (headerList!=null && headerList.isEmpty()==false) {
+			length = headerList.size();
+		}
+		
+		// 设置合并
+		// 四个参数分别是：起始行、终止行、起始列、终止列（从0计）
+		CellRangeAddress cellRangeAddress = new CellRangeAddress(0, 0, 0, length-1);
+		sheet.addMergedRegion(cellRangeAddress);
+		
+		return 1;
+	}
+	
+	/**
 	 * 设置头部
 	 * @param sheet
 	 * @param clazz
@@ -110,7 +148,7 @@ public class SheetHelper {
 	 * @param sheet
 	 * @param clazz
 	 * @param rowIndex
-	 * @return
+	 * @return        返回当前写到第几行
 	 */
 	public int createHeader(Sheet sheet, Class<?> clazz, int rowIndex) {
 		Row row = sheet.createRow(rowIndex);
@@ -177,15 +215,24 @@ public class SheetHelper {
 	 * 设置头部
 	 * @param sheet
 	 * @param excelSetting
+	 * @return 
 	 */
-	public void createHeader(Sheet sheet, ExcelSetting excelSetting) {
+	public int createHeader(Sheet sheet, ExcelSetting excelSetting) {
+		int rowIndex = 0;
+		String title = excelSetting.getTitle();
+		if (title!=null && title.length()>0) {
+			rowIndex = 1;
+		}
+		
+		int headerLen = 0;
 		// 头部样式
 		CellStyle cellStyle = excelSetting.getCellStyle().createHeaderStyle(sheet.getWorkbook());
 		// 头部数据
 		List<String[]> headerList = excelSetting.getHeaderList();
-		
 		if (headerList!=null && headerList.isEmpty()==false) {
-			for (int i=0; i<headerList.size(); i++) {
+			headerLen = headerList.size();
+			
+			for (int i=rowIndex; i<headerLen; i++) {
 				// 创建行
 				Row row = sheet.createRow(i);
 				
@@ -202,6 +249,8 @@ public class SheetHelper {
 				}
 			}
 		}
+		
+		return rowIndex + headerLen;
 	}
 	
 	/**
@@ -327,10 +376,15 @@ public class SheetHelper {
 	 */
 	public void createData(Sheet sheet, ExcelSetting excelSetting) {
 		int dataRowIndex = 0;    // 数据行的起始索引
+		
+		String title = excelSetting.getTitle();
+		if (title!=null && title.length()>0) {
+			dataRowIndex += 1;
+		}
 		// 头部数据
 		List<String[]> headerList = excelSetting.getHeaderList();
 		if (headerList!=null && headerList.isEmpty()==false) {
-			dataRowIndex = headerList.size();
+			dataRowIndex += headerList.size();
 		}
 		
 		// 数据样式
