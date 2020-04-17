@@ -21,16 +21,15 @@ import org.apache.poi.ss.usermodel.DataValidationConstraint;
 import org.apache.poi.ss.usermodel.DataValidationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellRangeAddressList;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import cn.javaex.office.excel.ExcelUtils;
 import cn.javaex.office.excel.annotation.ExcelCell;
+import cn.javaex.office.excel.annotation.ExcelStyle;
 import cn.javaex.office.excel.entity.ExcelSetting;
 import cn.javaex.office.excel.style.DefaultCellStyle;
+import cn.javaex.office.excel.style.ICellStyle;
 
 /**
  * Sheet
@@ -58,12 +57,20 @@ public class SheetHelper {
 	 * @param clazz
 	 * @param sheetTitle 
 	 * @return        返回当前写到第几行
+	 * @throws Exception 
 	 */
-	public int createTtile(Sheet sheet, Class<?> clazz, String sheetTitle) {
+	public int createTtile(Sheet sheet, Class<?> clazz, String sheetTitle) throws Exception {
 		Row row = sheet.createRow(0);
 		
-		// 标题样式
-		CellStyle cellStyle = new DefaultCellStyle().createTitleStyle(sheet.getWorkbook());
+		// 样式
+		CellStyle cellStyle = null;
+		ExcelStyle excelStyle = clazz.getAnnotation(ExcelStyle.class);
+		if (excelStyle==null) {
+			cellStyle = new DefaultCellStyle().createTitleStyle(sheet.getWorkbook());
+		} else {
+			ICellStyle obj = (ICellStyle) Class.forName(excelStyle.value()).newInstance();
+			cellStyle = obj.createTitleStyle(sheet.getWorkbook());
+		}
 		
 		Cell cell = row.createCell(0);
 		// 设置单元格内容
@@ -138,8 +145,9 @@ public class SheetHelper {
 	 * @param sheet
 	 * @param clazz
 	 * @return 
+	 * @throws Exception 
 	 */
-	public void createHeader(Sheet sheet, Class<?> clazz) {
+	public void createHeader(Sheet sheet, Class<?> clazz) throws Exception {
 		this.createHeader(sheet, clazz, 0);
 	}
 	
@@ -149,11 +157,20 @@ public class SheetHelper {
 	 * @param clazz
 	 * @param rowIndex
 	 * @return        返回当前写到第几行
+	 * @throws Exception 
 	 */
-	public int createHeader(Sheet sheet, Class<?> clazz, int rowIndex) {
+	public int createHeader(Sheet sheet, Class<?> clazz, int rowIndex) throws Exception {
 		Row row = sheet.createRow(rowIndex);
 		
-		CellStyle cellStyle = new DefaultCellStyle().createHeaderStyle(sheet.getWorkbook());
+		// 样式
+		CellStyle cellStyle = null;
+		ExcelStyle excelStyle = clazz.getAnnotation(ExcelStyle.class);
+		if (excelStyle==null) {
+			cellStyle = new DefaultCellStyle().createHeaderStyle(sheet.getWorkbook());
+		} else {
+			ICellStyle obj = (ICellStyle) Class.forName(excelStyle.value()).newInstance();
+			cellStyle = obj.createHeaderStyle(sheet.getWorkbook());
+		}
 		
 		int colIndex = 0;    // 列索引
 		// 得到该类的所有成员变量
@@ -276,7 +293,15 @@ public class SheetHelper {
 			return;
 		}
 		
-		CellStyle cellStyle = new DefaultCellStyle().createDataStyle(sheet.getWorkbook());
+		// 样式
+		CellStyle cellStyle = null;
+		ExcelStyle excelStyle = clazz.getAnnotation(ExcelStyle.class);
+		if (excelStyle==null) {
+			cellStyle = new DefaultCellStyle().createDataStyle(sheet.getWorkbook());
+		} else {
+			ICellStyle obj = (ICellStyle) Class.forName(excelStyle.value()).newInstance();
+			cellStyle = obj.createDataStyle(sheet.getWorkbook());
+		}
 		
 		Field[] fieldArr = clazz.getDeclaredFields();
 		
@@ -410,117 +435,6 @@ public class SheetHelper {
 				}
 			}
 		}
-	}
-
-	/**
-	 * 合并单元格
-	 * @param sheet
-	 * @param excelSetting
-	 */
-	public void mergeCell(Sheet sheet, ExcelSetting excelSetting) {
-		List<CellRangeAddress> rangeList = excelSetting.getRangeList();
-		if (rangeList!=null && rangeList.isEmpty()==false) {
-			for (CellRangeAddress cellRangeAddress : rangeList) {
-				sheet.addMergedRegion(cellRangeAddress);
-			}
-		}
-	}
-
-	/**
-	 * 创建下拉框sheet
-	 * @param sheet
-	 * @param excelSetting
-	 */
-	public void createSelectSheet(Sheet sheet, ExcelSetting excelSetting) {
-		Workbook wb = sheet.getWorkbook();
-		
-		// 数据样式
-		CellStyle cellStyle = excelSetting.getCellStyle().createDataStyle(wb);
-		for (int i=0; i<26; i++) {
-			sheet.setDefaultColumnStyle(i, cellStyle);
-		}
-		
-		int dataRowIndex = 0;    // 数据行的起始索引
-		// 头部数据
-		List<String[]> headerList = excelSetting.getHeaderList();
-		if (headerList!=null && headerList.isEmpty()==false) {
-			dataRowIndex = headerList.size();
-		}
-		
-		// 下拉数据
-		List<String[]> selectDataList = excelSetting.getSelectDataList();
-		// 指定sheet中需要下拉的列
-		String[] selectColArr = excelSetting.getSelectColArr();
-		// 下拉数据来源作用于sheet的最大行
-		Integer maxRow = excelSetting.getMaxRow();
-		if (maxRow==null || maxRow==0) {
-			maxRow = MAX_SELECT_ROW;
-		}
-		
-		// 设置下拉框数据
-		if (selectColArr!=null && selectColArr.length>0) {
-			String selectSheetName = excelSetting.getSelectSheetName();
-			Sheet selectSheet = wb.createSheet(selectSheetName);
-			
-			String[] arr = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-			int index = 0;
-			for (int i=0; i<selectColArr.length; i++) {
-				// 获取下拉对象
-				String[] dlData = selectDataList.get(i);
-				int colNum = Integer.parseInt(selectColArr[i]);
-				
-				// 设置有效性
-				String formula = selectSheetName + "!$"+arr[index]+"$1:$"+arr[index]+"$"+dlData.length;
-				// 设置数据有效性加载在哪个单元格上,参数分别是：从selectSheet获取A1到AmaxRow作为一个下拉的数据、起始行、终止行、起始列、终止列
-				sheet.addValidationData(this.setDataValidation(selectSheet, formula, dataRowIndex, maxRow, colNum, colNum));
-				
-				// 生成selectSheet内容
-				for (int j=0; j<dlData.length; j++) {
-					if (index==0) {
-						// 第1个下拉选项，直接创建行、列，设置对应单元格的值
-						Cell createCell = selectSheet.createRow(j).createCell(0);
-						createCell.setCellValue(dlData[j]);
-					} else {
-						// 非第1个下拉选项
-						int colCount = selectSheet.getLastRowNum();
-						if (j<=colCount) {
-							// 前面创建过的行，直接获取行，创建列，设置对应单元格的值
-							Cell createCell = selectSheet.getRow(j).createCell(index);
-							createCell.setCellValue(dlData[j]);
-						} else {
-							// 未创建过的行，直接创建行、创建列，设置对应单元格的值
-							Cell createCell = selectSheet.createRow(j).createCell(index);
-							createCell.setCellValue(dlData[j]);
-						}
-					}
-				}
-				
-				index++;
-			}
-		}
-	}
-	
-	/**
-	 * 设置数据有效性
-	 * @param sheet
-	 * @param formula
-	 * @param startRow 起始行
-	 * @param endRow 终止行
-	 * @param startCol 起始列
-	 * @param endCol 终止列
-	 * @return
-	 */
-	private DataValidation setDataValidation(Sheet sheet, String formula,
-			int startRow, int endRow, int startCol, int endCol) {
-		
-		// 设置数据有效性加载在哪个单元格上。四个参数分别是：起始行、终止行、起始列、终止列
-		CellRangeAddressList addressList = new CellRangeAddressList(startRow, endRow, startCol, endCol);
-		
-		DataValidationHelper dvHelper = new XSSFDataValidationHelper((XSSFSheet) sheet);
-		DataValidationConstraint constraint = dvHelper.createFormulaListConstraint(formula);
-		DataValidation dataValidation = dvHelper.createValidation(constraint, addressList);
-		
-		return dataValidation;
 	}
 
 	/**
@@ -712,18 +626,32 @@ public class SheetHelper {
 		int startRowIndex = startRow - 1;
 		int endRowIndex = endRow - 1;
 		
-		CellStyle cellStyle = sheet.getRow(startRowIndex).getCell(colIndex).getCellStyle();
+		// 获取单元格样式
+		CellStyle cellStyle = null;
+		try {
+			// 获取第一个单元格的样式，用于继承
+			cellStyle = sheet.getRow(startRowIndex).getCell(colIndex).getCellStyle();
+		} catch (Exception e) {
+			// 如果没有该单元格存在，则使用默认的样式
+		}
+		
+		Row row = null;
 		Cell cell = null;
 		
-		for (int i=startRowIndex; i<endRow; i++) {
-			Row row = sheet.getRow(i);
+		for (int i=startRowIndex; i<=endRowIndex; i++) {
+			row = sheet.getRow(i);
 			if (row==null) {
 				cell = sheet.createRow(i).createCell(colIndex);
 			} else {
 				cell = row.getCell(colIndex);
+				if (cell==null) {
+					cell = row.createCell(colIndex);
+				}
 			}
 			
-			cell.setCellStyle(cellStyle);
+			if (cellStyle!=null) {
+				cell.setCellStyle(cellStyle);
+			}
 		}
 		
 		// 下拉的数据、起始行、终止行、起始列、终止列
@@ -736,6 +664,19 @@ public class SheetHelper {
 		
 		// 设置数据有效性
 		sheet.addValidationData(dataValidation);
+	}
+
+	/**
+	 * 设置合并
+	 * @param wb
+	 * @param firstRow    起始行（从0计）
+	 * @param lastRow     终止行（从0计）
+	 * @param firstCol    起始列（从0计）
+	 * @param lastCol     终止列（从0计）
+	 */
+	public void setMerge(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
+		CellRangeAddress cellRangeAddress = new CellRangeAddress(firstRow, lastRow, firstCol, lastCol);
+		sheet.addMergedRegion(cellRangeAddress);
 	}
 
 }

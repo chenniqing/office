@@ -83,7 +83,7 @@ public class ExcelUtils {
 	}
 	
 	/**
-	 * 根据注解方式得到Workbook对象
+	 * 根据注解方式导出Excel
 	 * @param clazz 数据库查询得到的vo实体对象
 	 * @param list  数据库查询得到的vo实体对象的数据集合
 	 * @return
@@ -103,7 +103,7 @@ public class ExcelUtils {
 	}
 	
 	/**
-	 * 根据注解方式得到Workbook对象（手动指定sheet页名称）
+	 * 根据注解方式导出Excel（手动指定sheet页名称）
 	 * @param wb         Workbook对象
 	 * @param clazz      数据库查询得到的vo实体对象
 	 * @param list       数据库查询得到的vo实体对象的数据集合
@@ -116,8 +116,8 @@ public class ExcelUtils {
 	}
 	
 	/**
-	 * 根据注解方式得到Workbook对象（手动指定sheet页名称）
-	 * @param wb          Workbook对象
+	 * 根据注解方式导出Excel（手动指定Sheet页名称）
+	 * @param wb          Workbook对象，允许为NULL
 	 * @param clazz       数据库查询得到的vo实体对象
 	 * @param list        数据库查询得到的vo实体对象的数据集合
 	 * @param sheetName   追加创建的sheet页名称
@@ -155,7 +155,7 @@ public class ExcelUtils {
 	}
 
 	/**
-	 * 得到Workbook对象
+	 * 导出Excel
 	 * @param excelSetting
 	 * @throws Exception
 	 */
@@ -182,12 +182,6 @@ public class ExcelUtils {
 		
 		// 5.0 设置数据体
 		sheetHelper.createData(sheet, excelSetting);
-		
-		// 6.0 设置合并单元格
-		sheetHelper.mergeCell(sheet, excelSetting);
-		
-		// 7.0 设置下拉数据
-		sheetHelper.createSelectSheet(sheet, excelSetting);
 		
 		return wb;
 	}
@@ -284,4 +278,95 @@ public class ExcelUtils {
 		
 		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
 	}
+
+	/**
+	 * 设置下拉选项
+	 * @param sheet
+	 * @param colNum          第几个列（从1开始计算）
+	 * @param startRow        第几个行设置开始（从1开始计算）
+	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
+	 */
+	public static void setSelect(Sheet sheet, int colNum, int startRow, int endRow, String[] selectDataList) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+	}
+	
+	/**
+	 * 设置合并单元格
+	 * @param wb
+	 * @param sheetNum    第几个Sheet页（从1开始计算）
+	 * @param firstRow    起始行（从0计）
+	 * @param lastRow     终止行（从0计）
+	 * @param firstCol    起始列（从0计）
+	 * @param lastCol     终止列（从0计）
+	 */
+	public static void setMerge(Workbook wb, int sheetNum, int firstRow, int lastRow, int firstCol, int lastCol) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		
+		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+	}
+	
+	/**
+	 * 设置合并单元格
+	 * @param wb
+	 * @param sheetName   Sheet页名称
+	 * @param firstRow    起始行（从0计）
+	 * @param lastRow     终止行（从0计）
+	 * @param firstCol    起始列（从0计）
+	 * @param lastCol     终止列（从0计）
+	 */
+	public static void setMerge(Workbook wb, String sheetName, int firstRow, int lastRow, int firstCol, int lastCol) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		Sheet sheet = wb.getSheet(sheetName);
+		
+		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+	}
+	
+	/**
+	 * 设置合并单元格
+	 * @param sheet
+	 * @param firstRow    起始行（从0计）
+	 * @param lastRow     终止行（从0计）
+	 * @param firstCol    起始列（从0计）
+	 * @param lastCol     终止列（从0计）
+	 */
+	public static void setMerge(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
+		SheetHelper sheetHelper = new SheetHelper();
+		
+		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+	}
+
+	/**
+	 * 通过流读取Excel
+	 * @param inputStream
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook getExcel(InputStream inputStream) throws Exception {
+		return WorkbookFactory.create(inputStream);
+	}
+	
+	/**
+	 * 读取resources文件夹下的Excel
+	 * @param <T>
+	 * @param t            直接写死 this
+	 * @param filePath     resources文件夹下的路径，例如：template/excel/模板.xlsx
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> Workbook getExcelFromResource(T t, String filePath) throws Exception {
+		if (filePath.startsWith("/")) {
+			filePath = filePath.substring(1, filePath.length());
+		}
+		
+		InputStream in = t.getClass().getClassLoader().getResourceAsStream(filePath);
+		
+		return WorkbookFactory.create(in);
+	}
+	
 }

@@ -757,20 +757,45 @@ public class WordUtils {
 	 * @param docx Word文件对象
 	 * @param param 允许为空
 	 * @return
+	 * @throws Exception 
 	 */
-	public static XWPFDocument getDocx(XWPFDocument docx, Map<String, Object> param) {
-		try {
-			if (param!=null && param.size()>0) {
-				// 替换段落
-				replaceParagraph(docx, param);
-				// 替换表格
-				replaceTable(docx, param);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+	public static XWPFDocument getDocx(XWPFDocument docx, Map<String, Object> param) throws Exception {
+		if (param!=null && param.size()>0) {
+			// 替换段落
+			replaceParagraph(docx, param);
+			// 替换表格
+			replaceTable(docx, param);
 		}
 		
 		return docx;
+	}
+	
+	/**
+	 * 通过流读取Word
+	 * @param inputStream
+	 * @return
+	 * @throws IOException
+	 */
+	public static XWPFDocument getDocx(InputStream inputStream) throws IOException {
+		return new XWPFDocument(inputStream);
+	}
+	
+	/**
+	 * 读取resources文件夹下的Word
+	 * @param <T>
+	 * @param t             直接写死 this
+	 * @param filePath      resources文件夹下的路径，例如：template/word/模板.docx
+	 * @return
+	 * @throws IOException 
+	 */
+	public static <T> XWPFDocument getDocxFromResource(T t, String filePath) throws IOException {
+		if (filePath.startsWith("/")) {
+			filePath = filePath.substring(1, filePath.length());
+		}
+		
+		InputStream in = t.getClass().getClassLoader().getResourceAsStream(filePath);
+		
+		return new XWPFDocument(in);
 	}
 	
 	/**

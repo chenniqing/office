@@ -2,8 +2,6 @@ package cn.javaex.office.excel.entity;
 
 import java.util.List;
 
-import org.apache.poi.ss.util.CellRangeAddress;
-
 import cn.javaex.office.excel.style.DefaultCellStyle;
 import cn.javaex.office.excel.style.ICellStyle;
 
@@ -13,25 +11,13 @@ import cn.javaex.office.excel.style.ICellStyle;
  * @author 陈霓清
  */
 public class ExcelSetting {
-	private String sheetName;                      // sheet页名称
-	private String title;                          // 顶部标题/说明
-	private List<String[]> headerList;             // 表头
-	private List<String[]> dataList;               // 数据
-	private String selectSheetName = "下拉数据";     // 下拉数据的sheet页名称
-	private List<String[]> selectDataList;         // 下拉数据
-	private String[] selectColArr;                 // 指定sheet1中需要下拉的列
-	private Integer columnWidth = 10;              // 列宽
-	private Integer maxRow;                        // 下拉数据来源作用于sheet1的最大行
-	private List<CellRangeAddress> rangeList;      // 合并单元格
+	private String sheetName;                                 // sheet页名称
+	private String title;                                     // 顶部标题/说明
+	private List<String[]> headerList;                        // 表头
+	private List<String[]> dataList;                          // 数据
+	private Integer columnWidth = 10;                         // 列宽
 	private ICellStyle cellStyle = new DefaultCellStyle();    // 单元格样式
 	
-	public ICellStyle getCellStyle() {
-		return cellStyle;
-	}
-	public void setCellStyle(ICellStyle cellStyle) {
-		this.cellStyle = cellStyle;
-	}
-
 	/**
 	 * 得到sheet页名称
 	 * @return
@@ -91,51 +77,6 @@ public class ExcelSetting {
 	public void setDataList(List<String[]> dataList) {
 		this.dataList = dataList;
 	}
-
-	/**
-	 * 得到下拉数据的sheet页名称
-	 * @return
-	 */
-	public String getSelectSheetName() {
-		return selectSheetName;
-	}
-	/**
-	 * 设置下拉数据的sheet页名称
-	 * @param selectSheetName
-	 */
-	public void setSelectSheetName(String selectSheetName) {
-		this.selectSheetName = selectSheetName;
-	}
-	
-	/**
-	 * 得到下拉数据
-	 * @return
-	 */
-	public List<String[]> getSelectDataList() {
-		return selectDataList;
-	}
-	/**
-	 * 设置下拉数据
-	 * @param selectDataList
-	 */
-	public void setSelectDataList(List<String[]> selectDataList) {
-		this.selectDataList = selectDataList;
-	}
-	
-	/**
-	 * 得到指定sheet1中需要下拉的列
-	 * @return
-	 */
-	public String[] getSelectColArr() {
-		return selectColArr;
-	}
-	/**
-	 * 设置指定sheet1中需要下拉的列
-	 * @param columnWidth
-	 */
-	public void setSelectColArr(String[] selectColArr) {
-		this.selectColArr = selectColArr;
-	}
 	
 	/**
 	 * 得到列宽
@@ -151,34 +92,19 @@ public class ExcelSetting {
 	public void setColumnWidth(Integer columnWidth) {
 		this.columnWidth = columnWidth;
 	}
-	
+
 	/**
-	 * 得到下拉数据来源作用于sheet1的最大行
+	 * 得到单元格样式
 	 * @return
 	 */
-	public Integer getMaxRow() {
-		return maxRow;
+	public ICellStyle getCellStyle() {
+		return cellStyle;
 	}
 	/**
-	 * 设置下拉数据来源作用于sheet1的最大行
-	 * @param maxRow
+	 * 设置单元格样式
+	 * @param cellStyle
 	 */
-	public void setMaxRow(Integer maxRow) {
-		this.maxRow = maxRow;
-	}
-	
-	/**
-	 * 得到合并单元格list
-	 * @return
-	 */
-	public List<CellRangeAddress> getRangeList() {
-		return rangeList;
-	}
-	/**
-	 * 设置合并单元格list
-	 * @param rangeList
-	 */
-	public void setRangeList(List<CellRangeAddress> rangeList) {
-		this.rangeList = rangeList;
+	public void setCellStyle(ICellStyle cellStyle) {
+		this.cellStyle = cellStyle;
 	}
 }
