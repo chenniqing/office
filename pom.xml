@@ -5,7 +5,7 @@
 	<version>2.0.0</version>
 	<name>office</name>
 	<url>http://www.javaex.cn</url>
-	<description>Word(.docx),Excel(.xlsx) tools</description>
+	<description>Word,Excel tools</description>
 	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
