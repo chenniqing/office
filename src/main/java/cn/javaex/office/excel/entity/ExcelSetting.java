@@ -6,7 +6,7 @@ import cn.javaex.office.excel.style.DefaultCellStyle;
 import cn.javaex.office.excel.style.ICellStyle;
 
 /**
- * Excel模板配置类
+ * Excel配置类
  * 
  * @author 陈霓清
  */
@@ -15,11 +15,14 @@ public class ExcelSetting {
 	private String title;                                     // 顶部标题/说明
 	private List<String[]> headerList;                        // 表头
 	private List<String[]> dataList;                          // 数据
-	private Integer columnWidth = 10;                         // 列宽
+	private int columnWidth = 16;                             // 列宽
+	private int titleHeight = 0;                              // 标题栏高度
+	private int headerHeight = 0;                             // 表头高度
+	private int dataHeight = 0;                               // 数据行高度
 	private ICellStyle cellStyle = new DefaultCellStyle();    // 单元格样式
-	
+
 	/**
-	 * 得到sheet页名称
+	 * 得到Sheet页名称
 	 * @return
 	 */
 	public String getSheetName() {
@@ -27,7 +30,7 @@ public class ExcelSetting {
 	}
 	
 	/**
-	 * 设置sheet页名称
+	 * 设置Sheet页名称
 	 * @param sheet1Name
 	 */
 	public void setSheetName(String sheetName) {
@@ -82,17 +85,62 @@ public class ExcelSetting {
 	 * 得到列宽
 	 * @return
 	 */
-	public Integer getColumnWidth() {
+	public int getColumnWidth() {
 		return columnWidth;
 	}
 	/**
 	 * 设置列宽
 	 * @param columnWidth
 	 */
-	public void setColumnWidth(Integer columnWidth) {
+	public void setColumnWidth(int columnWidth) {
 		this.columnWidth = columnWidth;
 	}
 
+	/**
+	 * 得到标题栏高度
+	 * @return
+	 */
+	public int getTitleHeight() {
+		return titleHeight;
+	}
+	/**
+	 * 设置标题栏高度
+	 * @param titleHeight
+	 */
+	public void setTitleHeight(int titleHeight) {
+		this.titleHeight = titleHeight;
+	}
+
+	/**
+	 * 得到表头高度
+	 * @return
+	 */
+	public int getHeaderHeight() {
+		return headerHeight;
+	}
+	/**
+	 * 设置表头高度
+	 * @param headerHeight
+	 */
+	public void setHeaderHeight(int headerHeight) {
+		this.headerHeight = headerHeight;
+	}
+
+	/**
+	 * 得到数据行高度
+	 * @return
+	 */
+	public int getDataHeight() {
+		return dataHeight;
+	}
+	/**
+	 * 设置数据行高度
+	 * @param dataHeight
+	 */
+	public void setDataHeight(int dataHeight) {
+		this.dataHeight = dataHeight;
+	}
+	
 	/**
 	 * 得到单元格样式
 	 * @return

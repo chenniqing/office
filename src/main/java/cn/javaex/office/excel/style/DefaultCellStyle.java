@@ -64,6 +64,8 @@ public class DefaultCellStyle implements ICellStyle {
 		cellStyle.setAlignment(HorizontalAlignment.CENTER);
 		// 垂直对齐方式（居中）
 		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+		// 自动换行
+		cellStyle.setWrapText(true);
 		// 字体
 		Font font = wb.createFont();
 		font.setFontName("等线");

@@ -10,9 +10,27 @@ import java.lang.annotation.Target;
 public @interface ExcelStyle {
 	
 	/**
-	 * 样式实现类名
+	 * 自定义样式实现类名
 	 * @return
 	 */
-	public String value() default "cn.javaex.office.excel.style.DefaultCellStyle";
+	public String cellStyle() default "cn.javaex.office.excel.style.DefaultCellStyle";
+	
+	/**
+	 * 标题栏高度
+	 * @return
+	 */
+	public int titleHeight() default 0;
+	
+	/**
+	 * 表头高度
+	 * @return
+	 */
+	public int headerHeight() default 0;
+	
+	/**
+	 * 数据行高度
+	 * @return
+	 */
+	public int dataHeight() default 0;
 	
 }

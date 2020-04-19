@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Workbook;
  * @author 陈霓清
  */
 public interface ICellStyle {
+	
 	/**
 	 * 创建头部样式
 	 * @param wk

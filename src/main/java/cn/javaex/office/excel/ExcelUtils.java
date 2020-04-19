@@ -15,7 +15,10 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import cn.javaex.office.excel.annotation.ExcelSheet;
 import cn.javaex.office.excel.entity.ExcelSetting;
+import cn.javaex.office.excel.help.SheetAnnotationHelper;
 import cn.javaex.office.excel.help.SheetHelper;
+import cn.javaex.office.excel.help.SheetParamHelper;
+import cn.javaex.office.excel.help.SheetReadHelper;
 import cn.javaex.office.excel.help.WorkbookHelpler;
 
 /**
@@ -121,12 +124,12 @@ public class ExcelUtils {
 	 * @param clazz       数据库查询得到的vo实体对象
 	 * @param list        数据库查询得到的vo实体对象的数据集合
 	 * @param sheetName   追加创建的sheet页名称
-	 * @param sheetTitle  追加创建的sheet页顶部标题
+	 * @param title       追加创建的sheet页顶部标题
 	 * @return
 	 * @throws Exception
 	 */
-	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String sheetTitle) throws Exception {
-		SheetHelper sheetHelper = new SheetHelper();
+	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String title) throws Exception {
+		SheetHelper sheetHelper = new SheetAnnotationHelper();
 		
 		// 1.0 创建 Excel
 		if (wb==null) {
@@ -137,19 +140,8 @@ public class ExcelUtils {
 		// 2.0 创建sheet
 		Sheet sheet = wb.createSheet(sheetName);
 		
-		// 当前写到了第几行（从1开始计算）
-		int rowNum = 0;
-		
-		// 3.0 设置标题
-		if (sheetTitle!=null && sheetTitle.length()>0) {
-			rowNum = sheetHelper.createTtile(sheet, clazz, sheetTitle);
-		}
-		
-		// 4.0 设置表头
-		rowNum = sheetHelper.createHeader(sheet, clazz, rowNum);
-		
-		// 5.0 设置数据体
-		sheetHelper.createData(sheet, clazz, list, rowNum);
+		// 3.0 创建内容
+		sheetHelper.exportExcel(sheet, clazz, list, title);
 		
 		return wb;
 	}
@@ -160,32 +152,34 @@ public class ExcelUtils {
 	 * @throws Exception
 	 */
 	public static Workbook exportExcel(ExcelSetting excelSetting) throws Exception {
-		SheetHelper sheetHelper = new SheetHelper();
+		return exportExcel(null, excelSetting);
+	}
+
+	/**
+	 * 导出Excel
+	 * @param wb
+	 * @param excelSetting
+	 * @return
+	 */
+	public static Workbook exportExcel(Workbook wb, ExcelSetting excelSetting) {
+		SheetHelper sheetHelper = new SheetParamHelper();
 		
 		// 1.0 创建 Excel
-		List<String[]> dataList = excelSetting.getDataList();
-		int size = dataList==null ? 0 : dataList.size();
-		Workbook wb = new WorkbookHelpler().createWorkbook(size);
+		if (wb==null) {
+			List<String[]> dataList = excelSetting.getDataList();
+			int size = dataList==null ? 0 : dataList.size();
+			wb = new WorkbookHelpler().createWorkbook(size);
+		}
 		
 		// 2.0 创建sheet
-		String sheetName = excelSetting.getSheetName();
-		if (sheetName==null || sheetName.length()==0) {
-			sheetName = SheetHelper.SHEET_NAME;
-		}
-		Sheet sheet = wb.createSheet(sheetName);
+		Sheet sheet = wb.createSheet(excelSetting.getSheetName());
 		
-		// 3.0 设置标题
-		sheetHelper.createTtile(sheet, excelSetting);
-		
-		// 4.0 设置表头
-		sheetHelper.createHeader(sheet, excelSetting);
-		
-		// 5.0 设置数据体
-		sheetHelper.createData(sheet, excelSetting);
+		// 3.0 创建内容
+		sheetHelper.exportExcel(sheet, excelSetting);
 		
 		return wb;
 	}
-
+	
 	/**
 	 * 读取Excel，并将每一行转为自定义实体对象
 	 * @param inputStream
@@ -219,7 +213,7 @@ public class ExcelUtils {
 	 * @throws Exception
 	 */
 	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int sheetNum, int rowNum) throws Exception {
-		SheetHelper sheetHelper = new SheetHelper();
+		SheetHelper sheetHelper = new SheetReadHelper();
 		
 		Workbook wb = WorkbookFactory.create(inputStream);
 		Sheet sheet = wb.getSheetAt(sheetNum-1);
@@ -237,7 +231,7 @@ public class ExcelUtils {
 	 * @throws Exception
 	 */
 	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, String sheetName, int rowNum) throws Exception {
-		SheetHelper sheetHelper = new SheetHelper();
+		SheetHelper sheetHelper = new SheetReadHelper();
 		
 		Workbook wb = WorkbookFactory.create(inputStream);
 		Sheet sheet = wb.getSheet(sheetName);
@@ -297,10 +291,10 @@ public class ExcelUtils {
 	 * 设置合并单元格
 	 * @param wb
 	 * @param sheetNum    第几个Sheet页（从1开始计算）
-	 * @param firstRow    起始行（从0计）
-	 * @param lastRow     终止行（从0计）
-	 * @param firstCol    起始列（从0计）
-	 * @param lastCol     终止列（从0计）
+	 * @param firstRow    起始行（从1开始计算）
+	 * @param lastRow     终止行（从1开始计算）
+	 * @param firstCol    起始列（从1开始计算）
+	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Workbook wb, int sheetNum, int firstRow, int lastRow, int firstCol, int lastCol) {
 		SheetHelper sheetHelper = new SheetHelper();
@@ -314,10 +308,10 @@ public class ExcelUtils {
 	 * 设置合并单元格
 	 * @param wb
 	 * @param sheetName   Sheet页名称
-	 * @param firstRow    起始行（从0计）
-	 * @param lastRow     终止行（从0计）
-	 * @param firstCol    起始列（从0计）
-	 * @param lastCol     终止列（从0计）
+	 * @param firstRow    起始行（从1开始计算）
+	 * @param lastRow     终止行（从1开始计算）
+	 * @param firstCol    起始列（从1开始计算）
+	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Workbook wb, String sheetName, int firstRow, int lastRow, int firstCol, int lastCol) {
 		SheetHelper sheetHelper = new SheetHelper();
@@ -330,10 +324,10 @@ public class ExcelUtils {
 	/**
 	 * 设置合并单元格
 	 * @param sheet
-	 * @param firstRow    起始行（从0计）
-	 * @param lastRow     终止行（从0计）
-	 * @param firstCol    起始列（从0计）
-	 * @param lastCol     终止列（从0计）
+	 * @param firstRow    起始行（从1开始计算）
+	 * @param lastRow     终止行（从1开始计算）
+	 * @param firstCol    起始列（从1开始计算）
+	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
 		SheetHelper sheetHelper = new SheetHelper();
@@ -368,5 +362,5 @@ public class ExcelUtils {
 		
 		return WorkbookFactory.create(in);
 	}
-	
+
 }

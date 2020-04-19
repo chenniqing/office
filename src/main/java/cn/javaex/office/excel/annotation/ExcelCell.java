@@ -34,7 +34,7 @@ public @interface ExcelCell {
 	 *     单位为字符。1个汉字=2个字符
 	 * @return
 	 */
-	public int width() default 10;
+	public int width() default 16;
 	
 	/**
 	 * 格式化
@@ -50,4 +50,16 @@ public @interface ExcelCell {
 	 */
 	public String type() default "";
 	
+	/**
+	 * 多少列合并成一个组
+	 *     超过1时有效，自动向后合并
+	 * @return
+	 */
+	public int group() default 1;
+	
+	/**
+	 * 合并成一个组时的分隔符
+	 * @return
+	 */
+	public String separator() default " / ";
 }
