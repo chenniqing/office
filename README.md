@@ -9,7 +9,7 @@
 <dependency>
 	<groupId>cn.javaex</groupId>
 	<artifactId>office</artifactId>
-	<version>1.0.0</version>
+	<version>2.0.0</version>
 </dependency>
 
 <!-- 如果是基于spring的web项目，则下面2个依赖可以不用引入 -->
