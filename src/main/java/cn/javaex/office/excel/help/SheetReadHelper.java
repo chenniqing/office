@@ -13,12 +13,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import cn.javaex.office.excel.ExcelUtils;
 import cn.javaex.office.excel.annotation.ExcelCell;
+import cn.javaex.office.excel.annotation.FormatValidation;
+import cn.javaex.office.excel.annotation.NotEmpty;
+import cn.javaex.office.excel.exception.ExcelValidationException;
 
 /**
  * 读取Excel
@@ -38,15 +40,16 @@ public class SheetReadHelper extends SheetHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T> List<T> readSheet(Sheet sheet, Class<T> clazz, int rowNum) throws Exception {
+	public <T> List<T> read(Sheet sheet, Class<T> clazz, int rowNum) throws Exception {
 		List<T> list = new ArrayList<T>();
+		StringBuffer sb = new StringBuffer();
 		
 		Field[] fieldArr = clazz.getDeclaredFields();
 		
-		// 解析注解
+		// 1.0 解析注解
 		this.readAnnotation(fieldArr);
 		
-		// 遍历数据
+		// 2.0 遍历数据
 		for (Row row : sheet) {
 			// 跳过表头
 			if (row.getRowNum()<rowNum) {
@@ -57,41 +60,43 @@ public class SheetReadHelper extends SheetHelper {
 			T entity = null;
 			int len = fieldArr.length;
 			for (int i=0; i<len; i++) {
-				Cell cell = row.getCell(i);
-				if (cell==null) {
-					continue;
-				}
+				// 根据对象类型设置值
+				Field field = fieldArr[i];
+				field.setAccessible(true);    // 设置类的私有属性可访问
+				
+				ExcelCell excelCell = field.getAnnotation(ExcelCell.class);
 				
 				// 获取该列的值
-				String cellValue = ExcelUtils.getCellValue(cell);
+				String cellValue = ExcelUtils.getCellValue(row.getCell(i));
+				// 默认值
 				if (cellValue.length()==0) {
+					if (excelCell!=null && excelCell.defaultValue().length()>0) {
+						cellValue = excelCell.defaultValue();
+					}
+				}
+				// 必填项校验
+				if (cellValue.length()==0) {
+					NotEmpty notEmpty = field.getAnnotation(NotEmpty.class);
+					if (notEmpty!=null) {
+						sb.append("第" + (row.getRowNum()+1) + "行，第" + (i+1) + "列，" + notEmpty.value());
+						sb.append("<br/>"); 
+					}
+					
 					continue;
 				}
+				// 值替换
+				if (excelCell!=null && excelCell.replace().length>0) {
+					Map<String, String> map = (Map<String, String>) replaceMap.get(String.valueOf(i));
+					if (map.get((String) cellValue)!=null) {
+						cellValue = map.get(cellValue.toString());
+					}
+				}
+				
 				// 如果实例不存在则新建
 				if (entity==null) {
 					entity = clazz.newInstance();
 				}
 				
-				// 根据对象类型设置值
-				Field field = null;
-				try {
-					field = fieldArr[i];
-					field.setAccessible(true);    // 设置类的私有属性可访问
-					
-					ExcelCell excelCell = field.getAnnotation(ExcelCell.class);
-					if (excelCell!=null) {
-						// 值替换
-						if (excelCell.replace().length>0) {
-							Map<String, String> map = (Map<String, String>) replaceMap.get(String.valueOf(i));
-							if (map.get((String) cellValue)!=null) {
-								cellValue = map.get(cellValue.toString());
-							}
-						}
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw new Exception("导入实体类成员变量的数量与Excel中的字段数量不匹配");
-				}
 				Class<?> fieldType = field.getType();
 				if (fieldType==String.class) {
 					field.set(entity, cellValue);
@@ -108,37 +113,40 @@ public class SheetReadHelper extends SheetHelper {
 				else if (fieldType==Float.class || fieldType==Float.TYPE) {
 					field.set(entity, Float.valueOf(cellValue));
 				}
-				else if (fieldType==LocalDateTime.class) {
-					SimpleDateFormat sdf = (SimpleDateFormat) formatMap.get(String.valueOf(i));
-					if (sdf!=null) {
-						try {
-							Instant instant = sdf.parse(cellValue).toInstant();
-							ZoneId zone = ZoneId.systemDefault();
-							LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, zone);
+				else if (fieldType==LocalDateTime.class || fieldType==LocalDate.class || fieldType==Date.class) {
+					try {
+						if (fieldType==LocalDateTime.class) {
+							SimpleDateFormat sdf = (SimpleDateFormat) formatMap.get(String.valueOf(i));
+							if (sdf!=null) {
+								Instant instant = sdf.parse(cellValue).toInstant();
+								ZoneId zone = ZoneId.systemDefault();
+								LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, zone);
+								
+								field.set(entity, localDateTime);
+							}
+						}
+						else if (fieldType==LocalDate.class) {
+							DateTimeFormatter dtf = (DateTimeFormatter) formatMap.get(String.valueOf(i));
+							if (dtf!=null) {
+								LocalDate ld = LocalDate.parse(cellValue, dtf);
+								field.set(entity, ld);
+							}
+						}
+						else if (fieldType==Date.class) {
+							SimpleDateFormat sdf = (SimpleDateFormat) formatMap.get(String.valueOf(i));
+							if (sdf!=null) {
+								field.set(entity, sdf.parse(cellValue));
+							}
+						}
+					} catch (Exception e) {
+						// 格式化校验
+						FormatValidation formatValidation = field.getAnnotation(FormatValidation.class);
+						if (formatValidation!=null) {
+							sb.append("第" + (row.getRowNum()+1) + "行，第" + (i+1) + "列，" + formatValidation.value());
+							sb.append("<br/>"); 
 							
-							field.set(entity, localDateTime);
-						} catch (Exception e) {
-							field.set(entity, null);
-						}
-					}
-				}
-				else if (fieldType==LocalDate.class) {
-					DateTimeFormatter dtf = (DateTimeFormatter) formatMap.get(String.valueOf(i));
-					if (dtf!=null) {
-						try {
-							LocalDate ld = LocalDate.parse(cellValue, dtf);
-							field.set(entity, ld);
-						} catch (Exception e) {
-							field.set(entity, null);
-						}
-					}
-				}
-				else if (fieldType==Date.class) {
-					SimpleDateFormat sdf = (SimpleDateFormat) formatMap.get(String.valueOf(i));
-					if (sdf!=null) {
-						try {
-							field.set(entity, sdf.parse(cellValue));
-						} catch (Exception e) {
+							continue;
+						} else {
 							field.set(entity, null);
 						}
 					}
@@ -152,6 +160,10 @@ public class SheetReadHelper extends SheetHelper {
 			if (entity!=null) {
 				list.add(entity);
 			}
+		}
+		
+		if (!"".equals(sb.toString())) {
+			throw new ExcelValidationException(sb.toString());
 		}
 		
 		return list;
@@ -174,7 +186,7 @@ public class SheetReadHelper extends SheetHelper {
 				continue;
 			}
 			
-			int sort = excelCell.sort()<0 ? i : excelCell.sort();
+			int sort = excelCell.sort()==0 ? i : (excelCell.sort() - 1);
 			
 			// 设置值替换属性
 			String[] replaceArr = excelCell.replace();

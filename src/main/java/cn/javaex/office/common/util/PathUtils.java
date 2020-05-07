@@ -1,6 +1,7 @@
 package cn.javaex.office.common.util;
 
 import java.io.File;
+import java.io.InputStream;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -49,17 +50,21 @@ public class PathUtils {
 	 * @return
 	 */
 	public static String getProjectPath() {
-		HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		// 获取地址内容，原路径（项目名）
-		String realPath = request.getSession().getServletContext().getRealPath("/");
-		// tomcat webapps下部署
-		if (realPath.indexOf("apache-tomcat")>0) {
-			String path = request.getContextPath();    // 项目名
-			path = path.replace("/", File.separator) + File.separator;
-			return realPath.replace(path, "");
+		try {
+			HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+			// 获取地址内容，原路径（项目名）
+			String realPath = request.getSession().getServletContext().getRealPath("/");
+			// tomcat webapps下部署
+			if (realPath.contains("apache-tomcat")) {
+				String path = request.getContextPath();    // 项目名
+				path = path.replace("/", File.separator) + File.separator;
+				return realPath.replace(path, "");
+			}
+			
+			return System.getProperty("user.dir");
+		} catch (Exception e) {
+			return System.getProperty("user.dir");
 		}
-		
-		return System.getProperty("user.dir");
 	}
 	
 	/**
@@ -75,4 +80,16 @@ public class PathUtils {
 		return port==80 ? domain : domain + ":" + port;
 	}
 
+	/**
+	 * 根据resources下的文件路径获取流
+	 * @param path    例如：template/excel/模板.xlsx
+	 * @return
+	 */
+	public static InputStream getInputStreamFromResource(String path) {
+		if (path.startsWith("/")) {
+			path = path.substring(1);
+		}
+		
+		return Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
+	}
 }

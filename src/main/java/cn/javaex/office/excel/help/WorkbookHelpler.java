@@ -1,5 +1,7 @@
 package cn.javaex.office.excel.help;
 
+import java.util.UUID;
+
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -23,6 +25,21 @@ public class WorkbookHelpler {
 			return new SXSSFWorkbook();
 		}
 		return new XSSFWorkbook();
+	}
+
+	/**
+	 * 设置只读
+	 * @param wb
+	 * @param password
+	 */
+	public void setReadOnly(Workbook wb, String password) {
+		if (password==null || password.length()==0) {
+			password = UUID.randomUUID().toString().replace("-", "");
+		}
+		
+		for (int i=0; i<wb.getNumberOfSheets(); i++) {
+			wb.getSheetAt(i).protectSheet(password);
+		}
 	}
 	
 }

@@ -19,9 +19,7 @@ import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.util.IOUtils;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -37,130 +35,41 @@ public class FileUtils {
 	private static final int BUFFER_SIZE = 2048;
 	
 	/**
-	 * 写Word
-	 * @param docx
-	 * @param filePath 文件写到哪里的全路径
-	 * @throws IOException
-	 */
-	public static void writeWord(XWPFDocument docx, String filePath) throws IOException {
-		// 保证这个文件的父文件夹必须要存在
-		File targetFile = new File(filePath);
-		if (!targetFile.getParentFile().exists()) {
-			targetFile.getParentFile().mkdirs();
-		}
-		
-		FileOutputStream out = new FileOutputStream(targetFile);
-		docx.write(out);
-		out.flush();
-		IOUtils.closeQuietly(out);
-	}
-	
-	/**
-	 * 下载Word
-	 * @param docx
-	 * @param fileName
-	 * @throws IOException
-	 */
-	public static void downloadWord(XWPFDocument docx, String fileName) throws IOException {
-		String folderPath = PathUtils.getFolderPath();
-		
-		String fileUrl = folderPath + File.separator + fileName;
-		
-		FileOutputStream out = new FileOutputStream(fileUrl);
-		docx.write(out);
-		out.flush();
-		IOUtils.closeQuietly(out);
-		
-		downloadFile(fileUrl);
-	}
-	
-	/**
-	 * 写Excel
-	 * @param wb
-	 * @param filePath 文件写到哪里的全路径
-	 * @throws IOException
-	 */
-	public static void writeExcel(Workbook wb, String filePath) throws IOException {
-		// 保证这个文件的父文件夹必须要存在
-		File targetFile = new File(filePath);
-		if (!targetFile.getParentFile().exists()) {
-			targetFile.getParentFile().mkdirs();
-		}
-		
-		FileOutputStream out = new FileOutputStream(targetFile);
-		wb.write(out);
-		out.flush();
-		IOUtils.closeQuietly(out);
-	}
-	
-	/**
-	 * 下载Excel
-	 * @param wb
-	 * @param fileName 文件名，例如：1.xlsx
-	 * @throws IOException
-	 */
-	public static void downloadExcel(Workbook wb, String fileName) throws IOException {
-		String folderPath = PathUtils.getFolderPath();
-		
-		String fileUrl = folderPath + File.separator + fileName;
-		
-		FileOutputStream out = new FileOutputStream(fileUrl);
-		wb.write(out);
-		out.flush();
-		IOUtils.closeQuietly(out);
-		
-		downloadFile(fileUrl);
-	}
-	
-	/**
 	 * 下载resources文件夹下的文件（不重命名）
-	 * @param <T>         直接写死 this
 	 * @param filePath    resources文件夹下的路径，例如：template/excel/模板.xlsx
 	 */
-	public static <T> void downloadFileFromResource(T t, String filePath) {
-		downloadFileFromResource(t, filePath, null);
+	public static void downloadFileFromResource(String filePath) {
+		downloadFileFromResource(filePath, null);
 	}
 	
 	/**
 	 * 下载resources文件夹下的文件
-	 * @param <T>           直接写死 this
 	 * @param filePath      resources文件夹下的路径，例如：template/excel/模板.xlsx
-	 * @param nameFileName  重命名文件名称（带后缀）
+	 * @param newFileName   重命名文件名称（带后缀）
 	 */
-	public static <T> void downloadFileFromResource(T t, String filePath, String nameFileName) {
-		if (filePath.startsWith("/")) {
-			filePath = filePath.substring(1, filePath.length());
+	public static void downloadFileFromResource(String filePath, String newFileName) {
+		if (newFileName==null || newFileName.length()==0) {
+			newFileName = filePath.substring(filePath.lastIndexOf("/") + 1, filePath.length());
 		}
 		
-		try {
-			// SSM
-			String fileUrl = t.getClass().getResource(filePath).getPath();
-			downloadFile(fileUrl, null);
-		} catch (Exception e) {
-			// Springboot
-			if (nameFileName==null || nameFileName.length()==0) {
-				nameFileName = filePath.substring(filePath.lastIndexOf("/")+1, filePath.length());
-			}
-			
-			InputStream in = t.getClass().getClassLoader().getResourceAsStream(filePath);
-			downloadFile(in, nameFileName);
-		}
+		InputStream in = PathUtils.getInputStreamFromResource(filePath);
+		downloadFile(in, newFileName);
 	}
 	
 	/**
 	 * 下载文件
 	 * @param in              InputStream流
-	 * @param nameFileName    重命名文件名称（带后缀）
+	 * @param newFileName     重命名文件名称（带后缀）
 	 */
-	public static void downloadFile(InputStream in, String nameFileName) {
+	public static void downloadFile(InputStream in, String newFileName) {
 		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
 		
 		OutputStream out = null;
 		
 		try {
 			response.setContentType("application/octet-stream");
-			nameFileName = java.net.URLEncoder.encode(nameFileName, "UTF-8");
-			response.setHeader("Content-disposition", "attachment; filename=" + nameFileName);
+			newFileName = java.net.URLEncoder.encode(newFileName, "UTF-8");
+			response.setHeader("Content-disposition", "attachment; filename=" + newFileName);
 			out = response.getOutputStream();
 			
 			int b = 0;
@@ -190,28 +99,28 @@ public class FileUtils {
 	
 	/**
 	 * 文件下载
-	 * @param folderPath    文件的路径（带具体的文件名）
+	 * @param filePath      文件的路径（带具体的文件名）
 	 *                        如果是相对路径，则认为是项目的同级目录
 	 *                          如果是springboot源码运行，则认为相对路径是项目名文件夹下的路径
-	 * @param nameFileName  重命名文件名称（带后缀）
+	 * @param newFileName   重命名文件名称（带后缀）
 	 */
-	public static void downloadFile(String folderPath, String nameFileName) {
+	public static void downloadFile(String filePath, String newFileName) {
 		HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
 		
 		// 传入的路径是否是绝对路径
-		boolean isAbsolutePath = PathUtils.isAbsolutePath(folderPath);
+		boolean isAbsolutePath = PathUtils.isAbsolutePath(filePath);
 		// 存储文件的物理路径
-		String filePath = "";
+		String fileAbsolutePath = "";
 		if (isAbsolutePath) {
-			filePath = folderPath;
+			fileAbsolutePath = filePath;
 		} else {
 			String projectPath = PathUtils.getProjectPath();
-			filePath = projectPath + File.separator + folderPath;
+			fileAbsolutePath = projectPath + File.separator + filePath;
 		}
 		
-		File file = new File(filePath);
-		if (nameFileName==null || nameFileName.length()==0) {
-			nameFileName = file.getName();
+		File file = new File(fileAbsolutePath);
+		if (newFileName==null || newFileName.length()==0) {
+			newFileName = file.getName();
 		}
 		
 		BufferedInputStream bis = null;
@@ -219,7 +128,7 @@ public class FileUtils {
 		
 		try {
 			response.setContentType("application/octet-stream");
-			response.setHeader("Content-disposition", "attachment; filename=" + URLEncoder.encode(nameFileName, "UTF-8"));
+			response.setHeader("Content-disposition", "attachment; filename=" + URLEncoder.encode(newFileName, "UTF-8"));
 			response.setHeader("Content-Length", String.valueOf(file.length()));
 			
 			bis = new BufferedInputStream(new FileInputStream(file));
@@ -246,7 +155,7 @@ public class FileUtils {
 	
 	/**
 	 * 删除文件或目录（目录本身也删除）
-	 * @param path 目录或文件的全路径
+	 * @param path    目录或文件的全路径
 	 * @return boolean
 	 */
 	public static boolean deleteFile(String path) {
@@ -256,7 +165,7 @@ public class FileUtils {
 	
 	/**
 	 * 删除文件或目录
-	 * @param file File文件对象
+	 * @param file    File文件对象
 	 * @return boolean
 	 */
 	public static boolean deleteFile(File file) {
@@ -276,8 +185,8 @@ public class FileUtils {
 
 	/**
 	 * 删除文件或目录
-	 * @param path 目录或文件的全路径
-	 * @param flag 是否删除目录本身
+	 * @param path    目录或文件的全路径
+	 * @param flag    是否删除目录本身
 	 * @return boolean
 	 */
 	public static boolean deleteFile(String path, boolean flag) {
@@ -349,8 +258,8 @@ public class FileUtils {
 	
 	/**
 	 * 创建一个zip压缩文件，并存放到新的路径中
-	 * @param sourcePath 源目录或文件的全路径，例如：D:\\Temp  或  D:\\Temp\\1.docx
-	 * @param zipPath 压缩后的文件全路径，例如：D:\\Temp\\xx.zip
+	 * @param sourcePath    源目录或文件的全路径，例如：D:\\Temp  或  D:\\Temp\\1.docx
+	 * @param zipPath       压缩后的文件全路径，例如：D:\\Temp\\xx.zip
 	 * @throws Exception 
 	 */
 	public static void zip(String sourcePath, String zipPath) throws Exception {
@@ -359,12 +268,12 @@ public class FileUtils {
 	
 	/**
 	 * 创建一个zip压缩文件，并存放到新的路径中
-	 * @param sourcePath 源目录或文件的全路径，例如：D:\\Temp  或  D:\\Temp\\1.docx
-	 * @param zipPath 压缩后的文件全路径，例如：D:\\Temp\\xx.zip
-	 * @param keepFolder 是否将目录名称也一起压缩
+	 * @param sourcePath      源目录或文件的全路径，例如：D:\\Temp  或  D:\\Temp\\1.docx
+	 * @param zipPath         压缩后的文件全路径，例如：D:\\Temp\\xx.zip
+	 * @param isKeepFolder    是否将目录名称也一起压缩
 	 * @throws Exception 
 	 */
-	public static void zip(String sourcePath, String zipPath, boolean keepFolder) throws Exception {
+	public static void zip(String sourcePath, String zipPath, boolean isKeepFolder) throws Exception {
 		byte[] buffer = new byte[1024*10];
 		FileInputStream fis = null;
 		BufferedInputStream bis = null;
@@ -412,7 +321,7 @@ public class FileUtils {
 				for (File file : fileList) {
 					String name = getRealName(sourcePath, file);    // 获取文件相对路径，保持文件原有结构
 					ZipEntry zipEntry = null;
-					if (keepFolder) {
+					if (isKeepFolder) {
 						zipEntry = new ZipEntry(new File(sourcePath).getName() + File.separator + name); 
 					} else {
 						zipEntry = new ZipEntry(name); 
@@ -450,8 +359,8 @@ public class FileUtils {
 	
 	/**
 	 * zip解压
-	 * @param zipPath zip文件的全路径，例如：D:\\Temp\\xx.zip
-	 * @param destDirPath 解压后的目标文件夹路径，例如：D:\\Tempxx
+	 * @param zipPath        zip文件的全路径，例如：D:\\Temp\\xx.zip
+	 * @param destDirPath    解压后的目标文件夹路径，例如：D:\\Tempxx
 	 * @throws Exception
 	 */
 	public static void unZip(String zipPath, String destDirPath) throws Exception {

@@ -38,23 +38,32 @@ public class SheetHelper {
 	public Map<String, String> skipMap = new HashMap<String, String>();
 	
 	/**
-	 * 创建内容
+	 * 根据注解创建内容
 	 * @param sheet
 	 * @param clazz
 	 * @param list
 	 * @param title
 	 * @throws Exception 
 	 */
-	public void exportExcel(Sheet sheet, Class<?> clazz, List<?> list, String title) throws Exception {
+	public void write(Sheet sheet, Class<?> clazz, List<?> list, String title) throws Exception {
 		
 	}
 
 	/**
-	 * 创建内容
+	 * 根据设置类创建内容
 	 * @param sheet
 	 * @param excelSetting
 	 */
-	public void exportExcel(Sheet sheet, ExcelSetting excelSetting) {
+	public void write(Sheet sheet, ExcelSetting excelSetting) {
+		
+	}
+	
+	/**
+	 * 根据模板占位符替换内容
+	 * @param sheet
+	 * @param param
+	 */
+	public void write(Sheet sheet, Map<String, Object> param) {
 		
 	}
 
@@ -67,23 +76,19 @@ public class SheetHelper {
 	 * @return
 	 * @throws Exception 
 	 */
-	public <T> List<T> readSheet(Sheet sheet, Class<T> clazz, int rowNum) throws Exception {
+	public <T> List<T> read(Sheet sheet, Class<T> clazz, int rowNum) throws Exception {
 		return null;
 	}
 	
 	/**
 	 * 设置下拉选项
 	 * @param sheet
-	 * @param colNum          第几个列（从1开始计算）
-	 * @param startRow        第几个行设置开始（从1开始计算）
-	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param colNum          第几个列（从0开始计算）
+	 * @param startRow        第几个行设置开始（从0开始计算）
+	 * @param endRow          第几个行设置结束（从0开始计算）
 	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
 	 */
-	public void setSelect(Sheet sheet, int colNum, int startRow, int endRow, String[] selectDataList) {
-		int colIndex = colNum - 1;
-		int startRowIndex = startRow - 1;
-		int endRowIndex = endRow - 1;
-		
+	public void setSelect(Sheet sheet, int colIndex, int startRowIndex, int endRowIndex, String[] selectDataList) {
 		// 获取单元格样式
 		CellStyle cellStyle = null;
 		try {
@@ -91,7 +96,10 @@ public class SheetHelper {
 			cellStyle = sheet.getRow(startRowIndex).getCell(colIndex).getCellStyle();
 		} catch (Exception e) {
 			// 如果没有该单元格存在，则使用默认的样式
+			cellStyle = sheet.getWorkbook().createCellStyle();
 		}
+		// 自动换行
+		cellStyle.setWrapText(true);
 		
 		Row row = null;
 		Cell cell = null;
@@ -107,9 +115,7 @@ public class SheetHelper {
 				}
 			}
 			
-			if (cellStyle!=null) {
-				cell.setCellStyle(cellStyle);
-			}
+			cell.setCellStyle(cellStyle);
 		}
 		
 		// 下拉的数据、起始行、终止行、起始列、终止列
@@ -127,14 +133,47 @@ public class SheetHelper {
 	/**
 	 * 设置合并
 	 * @param wb
-	 * @param firstRow    起始行（从1开始计算）
-	 * @param lastRow     终止行（从1开始计算）
-	 * @param firstCol    起始列（从1开始计算）
-	 * @param lastCol     终止列（从1开始计算）
+	 * @param firstRow    起始行（从0开始计算）
+	 * @param lastRow     终止行（从0开始计算）
+	 * @param firstCol    起始列（从0开始计算）
+	 * @param lastCol     终止列（从0开始计算）
 	 */
 	public void setMerge(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
-		CellRangeAddress cellRangeAddress = new CellRangeAddress(firstRow-1, lastRow-1, firstCol-1, lastCol-1);
+		CellRangeAddress cellRangeAddress = new CellRangeAddress(firstRow, lastRow, firstCol, lastCol);
 		sheet.addMergedRegion(cellRangeAddress);
 	}
-
+	
+	/**
+	 * 插入行
+	 * @param sheet
+	 * @param startRow
+	 * @param rows
+	 */
+	public static void insertRow(Sheet sheet, int startRow, int rows) {
+		// 解决list占位符在最后一行时报错的BUG
+		if ((startRow + 1) > sheet.getLastRowNum()) {
+			sheet.createRow(startRow + 2);
+		}
+		
+		/**
+		 * startRow                  从下标为startRow的行开始移动
+		 * endRow                    到下标为endRow的行结束移动
+		 * n                         有多少行需要移动
+		 * copyRowHeight             是否复制行高
+		 * resetOriginalRowHeight    是否将原始行的高度设置为默认
+		 */
+		sheet.shiftRows(startRow + 1, sheet.getLastRowNum(), rows, true, false);
+		
+		RowHelper rowHelper = new RowHelper();
+		
+		for (int i=0; i<rows; i++) {
+			Row sourceRow = null;
+			Row targetRow = null;
+			
+			sourceRow = sheet.getRow(startRow);
+			targetRow = sheet.createRow(++startRow);
+			
+			rowHelper.copyRow(sheet, sourceRow, targetRow);
+		}
+	}
 }

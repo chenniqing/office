@@ -11,11 +11,11 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import cn.javaex.office.excel.entity.ExcelSetting;
 
 /**
- * 参数设置类导出Excel
+ * 设置类写入Excel
  * 
  * @author 陈霓清
  */
-public class SheetParamHelper extends SheetHelper {
+public class SheetSettingHelper extends SheetHelper {
 	
 	/**
 	 * 创建内容
@@ -23,7 +23,7 @@ public class SheetParamHelper extends SheetHelper {
 	 * @param excelSetting
 	 */
 	@Override
-	public void exportExcel(Sheet sheet, ExcelSetting excelSetting) {
+	public void write(Sheet sheet, ExcelSetting excelSetting) {
 		// 1.0 设置标题
 		this.createTtile(sheet, excelSetting);
 		

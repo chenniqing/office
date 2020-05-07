@@ -1,24 +1,36 @@
 package cn.javaex.office.excel;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.util.IOUtils;
 
+import cn.javaex.office.FileUtils;
+import cn.javaex.office.common.util.PathUtils;
 import cn.javaex.office.excel.annotation.ExcelSheet;
 import cn.javaex.office.excel.entity.ExcelSetting;
+import cn.javaex.office.excel.help.PreviewHelper;
 import cn.javaex.office.excel.help.SheetAnnotationHelper;
 import cn.javaex.office.excel.help.SheetHelper;
-import cn.javaex.office.excel.help.SheetParamHelper;
 import cn.javaex.office.excel.help.SheetReadHelper;
+import cn.javaex.office.excel.help.SheetSettingHelper;
+import cn.javaex.office.excel.help.SheetTemplateHelper;
 import cn.javaex.office.excel.help.WorkbookHelpler;
 
 /**
@@ -82,87 +94,68 @@ public class ExcelUtils {
 			default :
 				cellValue = "";
 		}
+		
 		return cellValue;
 	}
 	
 	/**
-	 * 根据注解方式导出Excel
-	 * @param clazz 数据库查询得到的vo实体对象
-	 * @param list  数据库查询得到的vo实体对象的数据集合
+	 * 通过路径读取Excel
+	 * @param filePath     例如：D:\\123.xlsx
 	 * @return
-	 * @throws Exception
+	 * @throws FileNotFoundException 
 	 */
-	public static Workbook exportExcel(Class<?> clazz, List<?> list) throws Exception {
-		// 设置sheet名称
-		String sheetName = SheetHelper.SHEET_NAME;
-		String sheetTitle = null;
-		ExcelSheet excelSheet = clazz.getAnnotation(ExcelSheet.class);
-		if (excelSheet!=null) {
-			sheetName = excelSheet.name();
-			sheetTitle = excelSheet.title();
-		}
-		
-		return exportExcel(null, clazz, list, sheetName, sheetTitle);
+	public static Workbook getExcel(String filePath) throws FileNotFoundException {
+		return getExcel(new FileInputStream(filePath));
 	}
 	
 	/**
-	 * 根据注解方式导出Excel（手动指定sheet页名称）
-	 * @param wb         Workbook对象
-	 * @param clazz      数据库查询得到的vo实体对象
-	 * @param list       数据库查询得到的vo实体对象的数据集合
-	 * @param sheetName  追加创建的sheet页名称
+	 * 读取resources文件夹下的Excel
+	 * @param filePath     resources文件夹下的路径，例如：template/excel/模板.xlsx
 	 * @return
-	 * @throws Exception
+	 * @throws IOException 
 	 */
-	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
-		return exportExcel(null, clazz, list, sheetName, null);
+	public static Workbook getExcelFromResource(String filePath) throws IOException {
+		InputStream in = PathUtils.getInputStreamFromResource(filePath);
+		return getExcel(in);
 	}
 	
 	/**
-	 * 根据注解方式导出Excel（手动指定Sheet页名称）
-	 * @param wb          Workbook对象，允许为NULL
-	 * @param clazz       数据库查询得到的vo实体对象
-	 * @param list        数据库查询得到的vo实体对象的数据集合
-	 * @param sheetName   追加创建的sheet页名称
-	 * @param title       追加创建的sheet页顶部标题
+	 * 通过流读取Excel
+	 * @param in
 	 * @return
 	 * @throws Exception
 	 */
-	public static Workbook exportExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String title) throws Exception {
-		SheetHelper sheetHelper = new SheetAnnotationHelper();
+	public static Workbook getExcel(InputStream in) {
+		Workbook wb = null;
 		
-		// 1.0 创建 Excel
-		if (wb==null) {
-			int size = list==null ? 0 : list.size();
-			wb = new WorkbookHelpler().createWorkbook(size);
+		try {
+			wb = WorkbookFactory.create(in);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			IOUtils.closeQuietly(in);
 		}
-		
-		// 2.0 创建sheet
-		Sheet sheet = wb.createSheet(sheetName);
-		
-		// 3.0 创建内容
-		sheetHelper.exportExcel(sheet, clazz, list, title);
 		
 		return wb;
 	}
-
+	
 	/**
 	 * 导出Excel
 	 * @param excelSetting
 	 * @throws Exception
 	 */
-	public static Workbook exportExcel(ExcelSetting excelSetting) throws Exception {
-		return exportExcel(null, excelSetting);
+	public static Workbook writeExcel(ExcelSetting excelSetting) throws Exception {
+		return writeExcel(null, excelSetting);
 	}
-
+	
 	/**
 	 * 导出Excel
 	 * @param wb
 	 * @param excelSetting
 	 * @return
 	 */
-	public static Workbook exportExcel(Workbook wb, ExcelSetting excelSetting) {
-		SheetHelper sheetHelper = new SheetParamHelper();
+	public static Workbook writeExcel(Workbook wb, ExcelSetting excelSetting) {
+		SheetHelper sheetHelper = new SheetSettingHelper();
 		
 		// 1.0 创建 Excel
 		if (wb==null) {
@@ -175,70 +168,297 @@ public class ExcelUtils {
 		Sheet sheet = wb.createSheet(excelSetting.getSheetName());
 		
 		// 3.0 创建内容
-		sheetHelper.exportExcel(sheet, excelSetting);
+		sheetHelper.write(sheet, excelSetting);
 		
 		return wb;
 	}
 	
 	/**
-	 * 读取Excel，并将每一行转为自定义实体对象
-	 * @param inputStream
-	 * @param clazz 自定义实体类
+	 * 根据注解方式导出Excel
+	 * @param clazz 数据库查询得到的vo实体对象
+	 * @param list  数据库查询得到的vo实体对象的数据集合
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz) throws Exception {
-		return readExcel(inputStream, clazz, 1, 1);
+	public static Workbook writeExcel(Class<?> clazz, List<?> list) throws Exception {
+		// 设置sheet名称
+		String sheetName = SheetHelper.SHEET_NAME;
+		String sheetTitle = null;
+		ExcelSheet excelSheet = clazz.getAnnotation(ExcelSheet.class);
+		if (excelSheet!=null) {
+			sheetName = excelSheet.name();
+			sheetTitle = excelSheet.title();
+		}
+		
+		return writeExcel(null, clazz, list, sheetName, sheetTitle);
 	}
 	
 	/**
-	 * 读取将Excel，并将每一行转为自定义实体对象
-	 * @param inputStream
+	 * 根据注解方式导出Excel（手动指定Sheet页名称）
+	 * @param wb         Workbook对象
+	 * @param clazz      数据库查询得到的vo实体对象
+	 * @param list       数据库查询得到的vo实体对象的数据集合
+	 * @param sheetName  追加创建的Sheet页名称
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook writeExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName) throws Exception {
+		return writeExcel(wb, clazz, list, sheetName, null);
+	}
+	
+	/**
+	 * 根据注解方式导出Excel（手动指定Sheet页名称）
+	 * @param wb          Workbook对象，允许为NULL
+	 * @param clazz       数据库查询得到的vo实体对象
+	 * @param list        数据库查询得到的vo实体对象的数据集合
+	 * @param sheetName   追加创建的Sheet页名称
+	 * @param title       追加创建的Sheet页顶部标题
+	 * @return
+	 * @throws Exception
+	 */
+	public static Workbook writeExcel(Workbook wb, Class<?> clazz, List<?> list, String sheetName, String title) throws Exception {
+		SheetHelper sheetHelper = new SheetAnnotationHelper();
+		
+		// 1.0 创建 Excel
+		if (wb==null) {
+			int size = list==null ? 0 : list.size();
+			wb = new WorkbookHelpler().createWorkbook(size);
+		}
+		
+		// 2.0 创建sheet
+		Sheet sheet = wb.createSheet(sheetName);
+		
+		// 3.0 创建内容
+		sheetHelper.write(sheet, clazz, list, title);
+		
+		return wb;
+	}
+	
+	/**
+	 * 追加写数据
+	 * @param sheet
+	 * @param clazz
+	 * @param list
+	 * @return
+	 * @throws Exception 
+	 */
+	public static void writeExcel(Sheet sheet, Class<?> clazz, List<?> list) throws Exception {
+		SheetHelper sheetHelper = new SheetAnnotationHelper();
+		
+		sheetHelper.write(sheet, clazz, list, null);
+	}
+	
+	/**
+	 * 写入Excel单元格
+	 * @param wb
+	 * @param sheetNum    第几个Sheet页（从1开始计算）
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 * @param content     写入内容
+	 */
+	public static void writeExcel(Workbook wb, int sheetNum, int rowNum, int colNum, String content) {
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		writeExcel(sheet, rowNum, colNum, content);
+	}
+	
+	/**
+	 * 写入Excel单元格
+	 * @param wb
+	 * @param sheetName   Sheet页名称
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 * @param content     写入内容
+	 */
+	public static void writeExcel(Workbook wb, String sheetName, int rowNum, int colNum, String content) {
+		Sheet sheet = wb.getSheet(sheetName);
+		writeExcel(sheet, rowNum, colNum, content);
+	}
+	
+	/**
+	 * 写入Excel单元格
+	 * @param sheet
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 * @param content     写入内容
+	 */
+	public static void writeExcel(Sheet sheet, int rowNum, int colNum, String content) {
+		if (content==null || content.length()==0) {
+			return;
+		}
+		
+		Row row = sheet.getRow(rowNum-1);
+		if (row==null) {
+			row = sheet.createRow(rowNum-1);
+		}
+		
+		Cell cell = row.getCell(colNum-1);
+		if (cell==null) {
+			cell = row.createCell(colNum-1);
+		}
+		
+		cell.setCellValue(content);
+	}
+	
+	/**
+	 * 读取Excel的第一个Sheet页，并将每一行转为自定义实体对象
+	 * @param in
 	 * @param clazz    自定义实体类
 	 * @param rowNum   从第几行开始读取（从1开始计算）
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int rowNum) throws Exception {
-		return readExcel(inputStream, clazz, 1, rowNum-1);
+	public static <T> List<T> readExcel(InputStream in, Class<T> clazz, int rowNum) throws Exception {
+		return readExcel(in, clazz, 1, rowNum);
 	}
 	
 	/**
 	 * 读取Excel，并将每一行转为自定义实体对象
-	 * @param inputStream
+	 * @param in
 	 * @param clazz      自定义实体类
-	 * @param sheetNum   读取第几个sheet页（从1开始计算）
+	 * @param sheetNum   读取第几个Sheet页（从1开始计算）
 	 * @param rowNum     从第几行开始读取（从1开始计算）
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, int sheetNum, int rowNum) throws Exception {
-		SheetHelper sheetHelper = new SheetReadHelper();
-		
-		Workbook wb = WorkbookFactory.create(inputStream);
+	public static <T> List<T> readExcel(InputStream in, Class<T> clazz, int sheetNum, int rowNum) throws Exception {
+		Workbook wb = WorkbookFactory.create(in);
 		Sheet sheet = wb.getSheetAt(sheetNum-1);
 		
-		return sheetHelper.readSheet(sheet, clazz, rowNum-1);
+		return readExcel(sheet, clazz, rowNum);
 	}
 	
 	/**
 	 * 读取Excel，并将每一行转为自定义实体对象
-	 * @param inputStream
+	 * @param in
 	 * @param clazz      自定义实体类
-	 * @param sheetName  读取哪一个sheet页，填写sheet页名称
+	 * @param sheetName  读取哪一个Sheet页，填写Sheet页名称
 	 * @param rowNum     从第几行开始读取（从1开始计算）
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> List<T> readExcel(InputStream inputStream, Class<T> clazz, String sheetName, int rowNum) throws Exception {
-		SheetHelper sheetHelper = new SheetReadHelper();
-		
-		Workbook wb = WorkbookFactory.create(inputStream);
+	public static <T> List<T> readExcel(InputStream in, Class<T> clazz, String sheetName, int rowNum) throws Exception {
+		Workbook wb = WorkbookFactory.create(in);
 		Sheet sheet = wb.getSheet(sheetName);
 		
-		return sheetHelper.readSheet(sheet, clazz, rowNum-1);
+		return readExcel(sheet, clazz, rowNum);
+	}
+	
+	/**
+	 * 读取Excel的第一个Sheet页，并将每一行转为自定义实体对象
+	 * @param wb
+	 * @param clazz      自定义实体类
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(Workbook wb, Class<T> clazz, int rowNum) throws Exception {
+		Sheet sheet = wb.getSheetAt(0);
+		return readExcel(sheet, clazz, rowNum);
+	}
+	
+	/**
+	 * 读取Excel，并将每一行转为自定义实体对象
+	 * @param wb
+	 * @param clazz      自定义实体类
+	 * @param sheetName  读取第几个Sheet页（从1开始计算）
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(Workbook wb, Class<T> clazz, int sheetNum, int rowNum) throws Exception {
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		return readExcel(sheet, clazz, rowNum);
+	}
+	
+	/**
+	 * 读取Excel，并将每一行转为自定义实体对象
+	 * @param wb
+	 * @param clazz      自定义实体类
+	 * @param sheetName  读取哪一个Sheet页，填写Sheet页名称
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(Workbook wb, Class<T> clazz, String sheetName, int rowNum) throws Exception {
+		Sheet sheet = wb.getSheet(sheetName);
+		return readExcel(sheet, clazz, rowNum);
+	}
+	
+	/**
+	 * 读取Excel，并将每一行转为自定义实体对象
+	 * @param <T>
+	 * @param sheet
+	 * @param clazz
+	 * @param rowNum     从第几行开始读取（从1开始计算）
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> List<T> readExcel(Sheet sheet, Class<T> clazz, int rowNum) throws Exception {
+		return new SheetReadHelper().read(sheet, clazz, rowNum-1);
+	}
+	
+	/**
+	 * 读取Excel第一个Sheet页中指定单元格的内容
+	 * @param wb
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 */
+	public static String readExcel(Workbook wb, int rowNum, int colNum) {
+		Sheet sheet = wb.getSheetAt(0);
+		return readExcel(sheet, rowNum, colNum);
+	}
+	
+	/**
+	 * 读取Excel单元格
+	 * @param wb
+	 * @param sheetNum    第几个Sheet页（从1开始计算）
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 */
+	public static String readExcel(Workbook wb, int sheetNum, int rowNum, int colNum) {
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		return readExcel(sheet, rowNum, colNum);
+	}
+	
+	/**
+	 * 读取Excel单元格
+	 * @param wb
+	 * @param sheetName   Sheet页名称
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 */
+	public static String readExcel(Workbook wb, String sheetName, int rowNum, int colNum) {
+		Sheet sheet = wb.getSheet(sheetName);
+		return readExcel(sheet, rowNum, colNum);
 	}
 
+	/**
+	 * 读取Excel单元格
+	 * @param sheet
+	 * @param rowNum      第几个行（从1开始计算）
+	 * @param colNum      第几个列（从1开始计算）
+	 */
+	public static String readExcel(Sheet sheet, int rowNum, int colNum) {
+		Row row = sheet.getRow(rowNum-1);
+		if (row==null) {
+			return "";
+		}
+		
+		return getCellValue(row.getCell(colNum-1));
+	}
+
+	/**
+	 * 设置下拉选项（第一个Sheet页）
+	 * @param wb
+	 * @param colNum          第几个列（从1开始计算）
+	 * @param startRow        第几个行设置开始（从1开始计算）
+	 * @param endRow          第几个行设置结束（从1开始计算）
+	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
+	 */
+	public static void setSelect(Workbook wb, int colNum, int startRow, int endRow, String[] selectDataList) {
+		setSelect(wb, 1, colNum, startRow, endRow, selectDataList);
+	}
+	
 	/**
 	 * 设置下拉选项
 	 * @param wb
@@ -249,11 +469,8 @@ public class ExcelUtils {
 	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
 	 */
 	public static void setSelect(Workbook wb, int sheetNum, int colNum, int startRow, int endRow, String[] selectDataList) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
 		Sheet sheet = wb.getSheetAt(sheetNum-1);
-		
-		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+		setSelect(sheet, colNum, startRow, endRow, selectDataList);
 	}
 	
 	/**
@@ -266,11 +483,8 @@ public class ExcelUtils {
 	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
 	 */
 	public static void setSelect(Workbook wb, String sheetName, int colNum, int startRow, int endRow, String[] selectDataList) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
 		Sheet sheet = wb.getSheet(sheetName);
-		
-		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+		setSelect(sheet, colNum, startRow, endRow, selectDataList);
 	}
 
 	/**
@@ -282,9 +496,19 @@ public class ExcelUtils {
 	 * @param selectDataList  下拉数据，例如：new String[]{"2018", "2019", "2020"}
 	 */
 	public static void setSelect(Sheet sheet, int colNum, int startRow, int endRow, String[] selectDataList) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
-		sheetHelper.setSelect(sheet, colNum, startRow, endRow, selectDataList);
+		new SheetHelper().setSelect(sheet, colNum-1, startRow-1, endRow-1, selectDataList);
+	}
+	
+	/**
+	 * 设置合并单元格（第一个Sheet页）
+	 * @param wb
+	 * @param firstRow    起始行（从1开始计算）
+	 * @param lastRow     终止行（从1开始计算）
+	 * @param firstCol    起始列（从1开始计算）
+	 * @param lastCol     终止列（从1开始计算）
+	 */
+	public static void setMerge(Workbook wb, int firstRow, int lastRow, int firstCol, int lastCol) {
+		setMerge(wb, 1, firstRow, lastRow, firstCol, lastCol);
 	}
 	
 	/**
@@ -297,11 +521,8 @@ public class ExcelUtils {
 	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Workbook wb, int sheetNum, int firstRow, int lastRow, int firstCol, int lastCol) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
 		Sheet sheet = wb.getSheetAt(sheetNum-1);
-		
-		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+		setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
 	}
 	
 	/**
@@ -314,11 +535,8 @@ public class ExcelUtils {
 	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Workbook wb, String sheetName, int firstRow, int lastRow, int firstCol, int lastCol) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
 		Sheet sheet = wb.getSheet(sheetName);
-		
-		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+		setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
 	}
 	
 	/**
@@ -330,37 +548,151 @@ public class ExcelUtils {
 	 * @param lastCol     终止列（从1开始计算）
 	 */
 	public static void setMerge(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
-		SheetHelper sheetHelper = new SheetHelper();
-		
-		sheetHelper.setMerge(sheet, firstRow, lastRow, firstCol, lastCol);
+		new SheetHelper().setMerge(sheet, firstRow-1, lastRow-1, firstCol-1, lastCol-1);
 	}
 
 	/**
-	 * 通过流读取Excel
-	 * @param inputStream
-	 * @return
-	 * @throws Exception
+	 * 输出Excel到指定路径
+	 * @param wb
+	 * @param filePath       文件写到哪里的全路径，例如：D:\\1.xlsx
 	 */
-	public static Workbook getExcel(InputStream inputStream) throws Exception {
-		return WorkbookFactory.create(inputStream);
+	public static void output(Workbook wb, String filePath) {
+		// 保证这个文件的父文件夹必须要存在
+		File targetFile = new File(filePath);
+		if (!targetFile.getParentFile().exists()) {
+			targetFile.getParentFile().mkdirs();
+		}
+		
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(targetFile);
+			wb.write(out);
+			out.flush();
+			wb.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			IOUtils.closeQuietly(out);
+		}
 	}
 	
 	/**
-	 * 读取resources文件夹下的Excel
-	 * @param <T>
-	 * @param t            直接写死 this
-	 * @param filePath     resources文件夹下的路径，例如：template/excel/模板.xlsx
-	 * @return
-	 * @throws Exception
+	 * 下载Excel
+	 * @param wb
+	 * @param fileName       文件名，例如：test.xlsx
+	 * @throws IOException
 	 */
-	public static <T> Workbook getExcelFromResource(T t, String filePath) throws Exception {
-		if (filePath.startsWith("/")) {
-			filePath = filePath.substring(1, filePath.length());
+	public static void download(Workbook wb, String fileName) throws IOException {
+		String folderPath = PathUtils.getFolderPath();
+		
+		String fileUrl = folderPath + File.separator + fileName;
+		
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream(fileUrl);
+			wb.write(out);
+			out.flush();
+			wb.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			IOUtils.closeQuietly(out);
 		}
 		
-		InputStream in = t.getClass().getClassLoader().getResourceAsStream(filePath);
-		
-		return WorkbookFactory.create(in);
+		FileUtils.downloadFile(fileUrl);
+	}
+	
+	/**
+	 * 设置只读（随机密码）
+	 * @param word 
+	 */
+	public static void setReadOnly(Workbook wb) {
+		new WorkbookHelpler().setReadOnly(wb, null);
+	}
+	
+	/**
+	 * 设置只读
+	 * @param wb
+	 * @param password    密码
+	 */
+	public static void setReadOnly(Workbook wb, String password) {
+		new WorkbookHelpler().setReadOnly(wb, password);
+	}
+	
+	/**
+	 * 设置固定列、固定行
+	 * @param wb
+	 * @param sheetNum    第几个Sheet页（从1开始计算）
+	 * @param colNum      前N列固定（从1开始计算）
+	 * @param rowNum      前N行固定（从1开始计算）
+	 */
+	public static void setFixed(Workbook wb, int sheetNum, int colNum, int rowNum) {
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		setFixed(sheet, colNum, rowNum);
 	}
 
+	/**
+	 * 设置固定列、固定行
+	 * @param wb
+	 * @param sheetName   Sheet页名称
+	 * @param colNum      前N列固定（从1开始计算）
+	 * @param rowNum      前N行固定（从1开始计算）
+	 */
+	public static void setFixed(Workbook wb, String sheetName, int colNum, int rowNum) {
+		Sheet sheet = wb.getSheet(sheetName);
+		setFixed(sheet, colNum, rowNum);
+	}
+
+	/**
+	 * 设置固定列、固定行
+	 * @param sheet
+	 * @param colNum      前N列固定（从1开始计算）
+	 * @param rowNum      前N行固定（从1开始计算）
+	 */
+	public static void setFixed(Sheet sheet, int colNum, int rowNum) {
+		sheet.createFreezePane(colNum, rowNum, colNum, rowNum);
+	}
+
+	/**
+	 * 替换Excel中的占位符内容
+	 * @param wb
+	 * @param sheetNum    第几个Sheet页（从1开始计算）
+	 * @param param
+	 */
+	public static void writeExcel(Workbook wb, int sheetNum, Map<String, Object> param) {
+		Sheet sheet = wb.getSheetAt(sheetNum-1);
+		writeExcel(sheet, param);
+	}
+
+	/**
+	 * 替换Excel中的占位符内容
+	 * @param wb
+	 * @param sheetName   Sheet页名称
+	 * @param param
+	 */
+	public static void writeExcel(Workbook wb, String sheetName, Map<String, Object> param) {
+		Sheet sheet = wb.getSheet(sheetName);
+		writeExcel(sheet, param);
+	}
+
+	/**
+	 * 替换Excel中的占位符内容
+	 * @param sheet
+	 * @param param
+	 */
+	public static void writeExcel(Sheet sheet, Map<String, Object> param) {
+		SheetHelper sheetHelper = new SheetTemplateHelper();
+		sheetHelper.write(sheet, param);
+	}
+
+	/**
+	 * Excel转Html
+	 * @param filePath     excel文件路径，例如：D:\\Temp\\1.xlsx
+	 * @return             返回生成的html文件的全路径，例如：D:\\Temp\\1_html\\1.html
+	 * @throws Exception 
+	 */
+	public static String excelToHtml(String filePath) throws Exception {
+		return new PreviewHelper().excelToHtml(filePath);
+	}
+	
 }

@@ -6,24 +6,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Excel的Sheet页
+ * 格式化校验
  * 
  * @author 陈霓清
  */
-@Target({ElementType.TYPE})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ExcelSheet {
+public @interface FormatValidation {
 	
 	/**
-	 * Sheet页名称
+	 * 提示信息
 	 * @return
 	 */
-	public String name() default "Sheet1";
+	public String value();
 
-	/**
-	 * 顶部标题
-	 * @return
-	 */
-	public String title() default "";
-	
 }

@@ -5,15 +5,22 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Excel单元格
+ * 
+ * @author 陈霓清
+ */
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ExcelCell {
 	
 	/**
-	 * 对应数据库字段的描述（即该列的名称）
+	 * 表头（对应数据库字段，即该列的名称）
+	 *     多行表头时自动合并
+	 *     例如：{"表头1", "表头2"}  或  "表头"
 	 * @return
 	 */
-	public String name() default "";
+	public String[] name() default {};
 	
 	/**
 	 * 值替换
@@ -23,11 +30,11 @@ public @interface ExcelCell {
 	public String[] replace() default {};
 	
 	/**
-	 * 排序，从 0 开始计算
-	 *     如果都缺省的话（即默认值-1），则按照成员变量的顺序自动排序
+	 * 排序，从 1 开始计算
+	 *     如果都缺省的话（即默认值0），则按照成员变量的顺序自动排序
 	 * @return
 	 */
-	public int sort() default -1;
+	public int sort() default 0;
 	
 	/**
 	 * 导出时，每列的宽度
@@ -62,4 +69,12 @@ public @interface ExcelCell {
 	 * @return
 	 */
 	public String separator() default " / ";
+	
+	/**
+	 * 默认值
+	 *     填写在Excel上显示的内容
+	 * @return
+	 */
+	public String defaultValue() default "";
+	
 }

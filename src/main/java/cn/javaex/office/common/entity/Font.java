@@ -14,7 +14,7 @@ public class Font implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private String text;             // 文本内容
-	private String color;            // 颜色
+	private String color;            // 颜色：RGB，例如：FF0000
 	private String fontFamily;       // 字体
 	private Integer fontSize;        // 字体大小
 	private boolean bold;            // 粗体

@@ -39,28 +39,149 @@ public class SheetAnnotationHelper extends SheetHelper {
 	 * @throws Exception
 	 */
 	@Override
-	public void exportExcel(Sheet sheet, Class<?> clazz, List<?> list, String title) throws Exception {
+	public void write(Sheet sheet, Class<?> clazz, List<?> list, String title) throws Exception {
 		// 当前写到了第几行（从1开始计算）
-		int rowNum = 0;
+		int rowNum = sheet.getLastRowNum();
+		Row row = sheet.getRow(0);
 		
-		// 1.0 设置标题
-		if (title!=null && title.length()>0) {
-			rowNum = this.createTtile(sheet, clazz, title);
+		// 1.0 设置基础属性
+		this.setBasicData(sheet, clazz);
+		
+		// 表示是新建的Sheet页
+		if (row==null) {
+			// 2.0 设置标题
+			if (title!=null && title.length()>0) {
+				rowNum = this.createTtile(sheet, clazz, title);
+			}
+			
+			// 3.0 设置表头
+			int headerRows = this.getHeaderRows(clazz);
+			if (headerRows==1) {
+				// 单行表头
+				rowNum = this.createHeader(sheet, clazz, rowNum);
+			} else {
+				// 多行表头
+				rowNum = this.createHeaders(sheet, clazz, rowNum, headerRows);
+			}
+		} else {
+			rowNum = rowNum + 1;
 		}
 		
-		// 2.0 设置表头
-		rowNum = this.createHeader(sheet, clazz, rowNum);
-		
-		// 3.0 设置数据
+		// 4.0 设置数据
 		this.createData(sheet, clazz, list, rowNum);
 	}
 	
+	/**
+	 * 设置基础属性
+	 * @param sheet
+	 * @param clazz
+	 */
+	private void setBasicData(Sheet sheet, Class<?> clazz) {
+		int colIndex = 0;    // 列索引
+		
+		Field[] fieldArr = clazz.getDeclaredFields();
+		for (int i=0; i<fieldArr.length; i++) {
+			Field field = fieldArr[i];
+			// 设置类的私有属性可访问
+			field.setAccessible(true);
+			// 得到每一个成员变量上的 ExcelCell 注解
+			ExcelCell excelCell = field.getAnnotation(ExcelCell.class);
+			if (excelCell==null) {
+				continue;
+			}
+			// 跳过被归入组的列
+			if (skipMap.get(field.getName())!=null) {
+				continue;
+			}
+			
+			int sort = excelCell.sort()==0 ? colIndex : (excelCell.sort() - 1);
+			
+			// 设置列宽
+			sheet.setColumnWidth(sort, excelCell.width() * BASE_COLUMN_WIDTH);
+			
+			// 设置值替换属性
+			String[] replaceArr = excelCell.replace();
+			if (replaceArr.length>0) {
+				Map<String, String> map = new HashMap<String, String>();
+				// {"1_男", "0_女"}
+				for (String replace : replaceArr) {
+					// 1_男
+					String[] arr = replace.split("_");
+					map.put(arr[0], arr[1]);
+				}
+				
+				replaceMap.put(String.valueOf(sort), map);
+			}
+			// 设置格式化属性
+			String format = excelCell.format();
+			if (format.length()>0) {
+				if (field.getType()==LocalDateTime.class || field.getType()==LocalDate.class) {
+					DateTimeFormatter dtf = DateTimeFormatter.ofPattern(format);
+					formatMap.put(String.valueOf(sort), dtf);
+				}
+				else if (field.getType()==Date.class) {
+					SimpleDateFormat sdf = new SimpleDateFormat(format);
+					formatMap.put(String.valueOf(sort), sdf);
+				}
+			}
+			
+			// 合并组
+			int mergeCol = excelCell.group();
+			if (mergeCol>1 && excelCell.sort()==0) {
+				int num = 0;
+				for (int j=(i+1); j<fieldArr.length; j++) {
+					Field temp = fieldArr[j];
+					temp.setAccessible(true);
+					if (temp.getAnnotation(ExcelCell.class)==null) {
+						continue;
+					}
+					
+					skipMap.put(temp.getName(), temp.getName());
+					
+					num++;
+					
+					if (num==(mergeCol-1)) {
+						break;
+					}
+				}
+			}
+			
+			colIndex++;
+		}
+	}
+
+	/**
+	 * 根据注解得到要设置的表头行数
+	 * @param clazz
+	 * @return
+	 */
+	private int getHeaderRows(Class<?> clazz) {
+		int headerRows = 1;
+		
+		Field[] fieldArr = clazz.getDeclaredFields();
+		for (Field field : fieldArr) {
+			// 设置类的私有属性可访问
+			field.setAccessible(true);
+			// 得到每一个成员变量上的 ExcelCell 注解
+			ExcelCell excelCell = field.getAnnotation(ExcelCell.class);
+			if (excelCell==null) {
+				continue;
+			}
+			
+			headerRows = excelCell.name().length;
+			
+			break;
+		}
+		
+		return headerRows;
+	}
+
 	/**
 	 * 设置标题
 	 * @param sheet
 	 * @param clazz
 	 * @param title
-	 * @return        返回当前写到第几行
+	 * @return              返回当前写到第几行
 	 * @throws Exception 
 	 */
 	private int createTtile(Sheet sheet, Class<?> clazz, String title) throws Exception {
@@ -101,6 +222,12 @@ public class SheetAnnotationHelper extends SheetHelper {
 			}
 			
 			length++;
+			
+			// 有组合并的话，长度要减少
+			int mergeCol = excelCell.group();
+			if (mergeCol>1) {
+				length = length - (mergeCol-1);
+			}
 		}
 		
 		// 设置合并
@@ -112,16 +239,15 @@ public class SheetAnnotationHelper extends SheetHelper {
 	}
 	
 	/**
-	 * 设置头部
+	 * 设置单行表头
 	 * @param sheet
 	 * @param clazz
 	 * @param rowIndex
-	 * @return        返回当前写到第几行
+	 * @return              返回当前写到第几行
 	 * @throws Exception 
 	 */
 	private int createHeader(Sheet sheet, Class<?> clazz, int rowIndex) throws Exception {
 		Row row = sheet.createRow(rowIndex);
-		
 		Workbook workbook = sheet.getWorkbook();
 		
 		// 样式
@@ -145,8 +271,8 @@ public class SheetAnnotationHelper extends SheetHelper {
 		int colIndex = 0;    // 列索引
 		// 得到该类的所有成员变量
 		Field[] fieldArr = clazz.getDeclaredFields();
-		for (int j=0; j<fieldArr.length; j++) {
-			Field field = fieldArr[j];
+		for (int i=0; i<fieldArr.length; i++) {
+			Field field = fieldArr[i];
 			
 			// 设置类的私有属性可访问
 			field.setAccessible(true);
@@ -161,49 +287,21 @@ public class SheetAnnotationHelper extends SheetHelper {
 				continue;
 			}
 			
-			int sort = excelCell.sort()<0 ? colIndex : excelCell.sort();
-			
-			// 设置列宽
-			sheet.setColumnWidth(sort, excelCell.width() * BASE_COLUMN_WIDTH);
+			int sort = excelCell.sort()==0 ? colIndex : (excelCell.sort() - 1);
 			
 			// 设置单元格
 			Cell cell = row.createCell(sort);
-			cell.setCellValue(excelCell.name());
+			cell.setCellValue(excelCell.name()[0]);
 			cell.setCellStyle(cellStyle);
 			
-			// 设置值替换属性
-			String[] replaceArr = excelCell.replace();
-			if (replaceArr.length>0) {
-				Map<String, String> map = new HashMap<String, String>();
-				// {"1_男", "0_女"}
-				for (String replace : replaceArr) {
-					// 1_男
-					String[] arr = replace.split("_");
-					map.put(arr[0], arr[1]);
-				}
-				
-				replaceMap.put(String.valueOf(sort), map);
-			}
-			// 设置格式化属性
-			String format = excelCell.format();
-			if (format.length()>0) {
-				if (field.getType()==LocalDateTime.class || field.getType()==LocalDate.class) {
-					DateTimeFormatter dtf = DateTimeFormatter.ofPattern(format);
-					formatMap.put(String.valueOf(sort), dtf);
-				}
-				else if (field.getType()==Date.class) {
-					SimpleDateFormat sdf = new SimpleDateFormat(format);
-					formatMap.put(String.valueOf(sort), sdf);
-				}
-			}
-			
+			// 合并组
 			int mergeCol = excelCell.group();
-			if (mergeCol>1 && excelCell.sort()==-1) {
+			if (mergeCol>1 && excelCell.sort()==0) {
 				int num = 0;
-				for (int k=(j+1); k<fieldArr.length; k++) {
-					Field temp = fieldArr[k];
+				for (int j=(i+1); j<fieldArr.length; j++) {
+					Field temp = fieldArr[j];
 					temp.setAccessible(true);
-					if (field.getAnnotation(ExcelCell.class)==null) {
+					if (temp.getAnnotation(ExcelCell.class)==null) {
 						continue;
 					}
 					
@@ -224,6 +322,111 @@ public class SheetAnnotationHelper extends SheetHelper {
 	}
 	
 	/**
+	 * 设置多行表头
+	 * @param sheet
+	 * @param clazz
+	 * @param rowIndex 
+	 * @param headerRows    表头行数
+	 * @return              返回当前写到第几行
+	 * @throws Exception 
+	 */
+	private int createHeaders(Sheet sheet, Class<?> clazz, int rowIndex, int headerRows) throws Exception {
+		int rowIndexTemp = rowIndex;
+		
+		Workbook workbook = sheet.getWorkbook();
+		
+		// 行高
+		int height = 0;
+		// 样式
+		CellStyle cellStyle = null;
+		ExcelStyle excelStyle = clazz.getAnnotation(ExcelStyle.class);
+		
+		if (excelStyle==null) {
+			cellStyle = new DefaultCellStyle().createHeaderStyle(workbook);
+		} else {
+			ICellStyle obj = (ICellStyle) Class.forName(excelStyle.cellStyle()).newInstance();
+			cellStyle = obj.createHeaderStyle(workbook);
+			
+			// 行高
+			height = excelStyle.headerHeight();
+		}
+		
+		skipMap.clear();
+		int colIndex = 0;    // 列索引
+		// 得到该类的所有成员变量
+		Field[] fieldArr = clazz.getDeclaredFields();
+		for (int i=0; i<fieldArr.length; i++) {
+			Field field = fieldArr[i];
+			
+			// 设置类的私有属性可访问
+			field.setAccessible(true);
+			
+			// 得到每一个成员变量上的 ExcelCell 注解
+			ExcelCell excelCell = field.getAnnotation(ExcelCell.class);
+			if (excelCell==null) {
+				continue;
+			}
+			// 跳过被归入组的列
+			if (skipMap.get(field.getName())!=null) {
+				continue;
+			}
+			
+			int sort = excelCell.sort()==0 ? colIndex : (excelCell.sort() - 1);
+			
+			for (int n=0; n<headerRows; n++) {
+				int rowIndexNew = rowIndexTemp + n;
+				
+				Row row = sheet.getRow(rowIndexNew);
+				if (row==null) {
+					row = sheet.createRow(rowIndexNew);
+					
+					// 行高
+					if (height>0) {
+						row.setHeight((short) (height * BASE_ROW_HEIGHT));
+					}
+					
+					rowIndex++;
+				}
+				
+				// 设置单元格
+				String cellValue = excelCell.name()[n];
+				Cell cell = row.createCell(sort);
+				cell.setCellValue(cellValue);
+				cell.setCellStyle(cellStyle);
+			}
+			
+			// 合并组
+			int mergeCol = excelCell.group();
+			if (mergeCol>1 && excelCell.sort()==0) {
+				int num = 0;
+				for (int j=(i+1); j<fieldArr.length; j++) {
+					Field temp = fieldArr[j];
+					temp.setAccessible(true);
+					if (temp.getAnnotation(ExcelCell.class)==null) {
+						continue;
+					}
+					
+					skipMap.put(temp.getName(), temp.getName());
+					
+					num++;
+					
+					if (num==(mergeCol-1)) {
+						break;
+					}
+				}
+			}
+			
+			colIndex++;
+		}
+		
+		// 设置表头合并
+		SheetMergeHelper sheetMergeHelper = new SheetMergeHelper();
+		sheetMergeHelper.setHeaderMerge(sheet, rowIndexTemp, headerRows);
+		
+		return rowIndex;
+	}
+	
+	/**
 	 * 设置数据
 	 * @param sheet
 	 * @param clazz
@@ -238,7 +441,6 @@ public class SheetAnnotationHelper extends SheetHelper {
 		
 		// 行高
 		int height = 0;
-		
 		// 样式
 		CellStyle cellStyle = null;
 		ExcelStyle excelStyle = clazz.getAnnotation(ExcelStyle.class);
@@ -256,8 +458,9 @@ public class SheetAnnotationHelper extends SheetHelper {
 		
 		CellHelper cellHelper = new CellHelper();
 		
-		Row row = null;
-		int len = list.size();
+		Row row = null;           // 行
+		Cell cell = null;         // 单元格
+		int len = list.size();    // 数据行数
 		for (int i=0; i<len; i++) {
 			row = sheet.createRow(rowIndex);
 			
@@ -286,23 +489,30 @@ public class SheetAnnotationHelper extends SheetHelper {
 					continue;
 				}
 				
-				int sort = excelCell.sort()<0 ? colIndex : excelCell.sort();
+				int sort = excelCell.sort()==0 ? colIndex : (excelCell.sort() - 1);
 				
 				// 创建单元格并设置值
-				Cell cell = row.createCell(sort);
+				cell = row.createCell(sort);
 				Object obj = field.get(entity);
 				
 				if ("image".equals(excelCell.type())) {
 					if (obj==null) {
 						cell.setCellValue("");
 					} else {
-						cellHelper.setImage(cell, (String) obj);
+						cellHelper.setImage(cell, (String) obj, null, null);
 					}
 				} else {
 					if (obj==null) {
-						cell.setCellValue("");
-					}
-					else if (obj instanceof String) {
+						if (excelCell.defaultValue().length()>0) {
+							cell.setCellValue(excelCell.defaultValue());   // 默认值
+						} else {
+							cell.setCellValue("");
+						}
+					} else if (obj instanceof String) {
+						if ("".equals(obj) && excelCell.defaultValue().length()>0) {
+							obj = excelCell.defaultValue();                // 默认值
+						}
+						
 						cell.setCellValue((String) obj);
 					}
 					else if (obj instanceof Integer) {
@@ -349,7 +559,7 @@ public class SheetAnnotationHelper extends SheetHelper {
 				cell.setCellStyle(cellStyle);
 				
 				int mergeCol = excelCell.group();
-				if (mergeCol>1 && excelCell.sort()==-1) {
+				if (mergeCol>1 && excelCell.sort()==0) {
 					String mergeStr = (String) obj;
 					String separator = excelCell.separator();
 					
@@ -357,7 +567,7 @@ public class SheetAnnotationHelper extends SheetHelper {
 					for (int k=(j+1); k<fieldArr.length; k++) {
 						Field temp = fieldArr[k];
 						temp.setAccessible(true);
-						if (field.getAnnotation(ExcelCell.class)==null) {
+						if (temp.getAnnotation(ExcelCell.class)==null) {
 							continue;
 						}
 						String str = (String) temp.get(entity);
